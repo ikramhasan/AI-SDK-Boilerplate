@@ -22,7 +22,7 @@ export default function SharedChatPage() {
 
   useEffect(() => {
     if (chat === null) {
-      router.replace("/")
+      router.replace("/chat")
     }
   }, [chat, router])
 

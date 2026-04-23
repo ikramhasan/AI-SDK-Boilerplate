@@ -81,7 +81,7 @@ export function AdminSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip="Back to app" asChild>
-              <Link href="/">
+              <Link href="/chat">
                 <HugeiconsIcon icon={ArrowLeft01Icon} size={18} />
                 <span>Back to app</span>
               </Link>

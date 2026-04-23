@@ -26,7 +26,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
-      router.replace("/")
+      router.replace("/chat")
     }
   }, [isLoaded, isSignedIn, router])
 
@@ -42,7 +42,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (chat === null) {
-      router.replace("/")
+      router.replace("/chat")
     }
   }, [chat, router])
 

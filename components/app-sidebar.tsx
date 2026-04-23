@@ -126,7 +126,7 @@ export function AppSidebar() {
               className="flex justify-between items-center"
               onClick={() => {
                 window.dispatchEvent(new Event("new-chat"));
-                router.push("/");
+                router.push("/chat");
               }}
             >
               <div className="flex items-center justify-center gap-2">
@@ -365,7 +365,7 @@ export function AppSidebar() {
                 if (deleteChatId) {
                   if (activeChatId === deleteChatId) {
                     window.dispatchEvent(new Event("new-chat"))
-                    router.replace("/")
+                    router.replace("/chat")
                   }
 
                   await removeChat({ chatId: deleteChatId as Id<"chats"> })

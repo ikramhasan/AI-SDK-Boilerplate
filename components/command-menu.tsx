@@ -60,7 +60,7 @@ export function CommandMenu() {
         e.preventDefault();
         setOpen(false);
         window.dispatchEvent(new Event("new-chat"));
-        router.push("/");
+        router.push("/chat");
       }
     }
     window.addEventListener("keydown", onKeyDown);
@@ -78,7 +78,7 @@ export function CommandMenu() {
   const displayChats = debouncedSearch.length > 0 ? (searchResults ?? []) : recentChats.slice(0, 10);
 
   const actions = [
-    { label: "New chat", icon: Edit02Icon, onSelect: () => runCommand(() => { window.dispatchEvent(new Event("new-chat")); router.push("/"); }), shortcut: true },
+    { label: "New chat", icon: Edit02Icon, onSelect: () => runCommand(() => { window.dispatchEvent(new Event("new-chat")); router.push("/chat"); }), shortcut: true },
     { label: "Change theme", icon: Moon02Icon, onSelect: () => runCommand(() => setTheme(resolvedTheme === "dark" ? "light" : "dark")), shortcut: false },
   ];
 
