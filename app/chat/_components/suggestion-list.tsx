@@ -13,9 +13,9 @@ export function SuggestionList({
   return (
     <div className="flex justify-center">
       <Suggestions>
-        <Suggestion suggestion="Diagnose an entitlement failure in my community" onClick={onSuggestion} />
-        <Suggestion suggestion="Map underutilized assets for a social initiative" onClick={onSuggestion} />
-        <Suggestion suggestion="Stress-test my institutional model for fragility" onClick={onSuggestion} />
+        <Suggestion suggestion="Summarize my emails last day and create action items" onClick={onSuggestion} />
+        <Suggestion suggestion="Analyze my Stripe revenue data and provide a report" onClick={onSuggestion} />
+        <Suggestion suggestion="Draft follow-up emails for yesterday's calls" onClick={onSuggestion} />
       </Suggestions>
     </div>
   );
