@@ -5,8 +5,8 @@ import { useEffect, useState } from "react"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { ChatMessages } from "@/app/_components/chat-messages"
-import { toUIMessages } from "@/app/_components/chat-utils"
+import { ChatMessages } from "@/app/chat/_components/chat-messages"
+import { toUIMessages } from "@/app/chat/_components/chat-utils"
 import { getChatDetail, type AdminChatDetail } from "../_actions"
 
 export default function AdminChatDetailPage() {

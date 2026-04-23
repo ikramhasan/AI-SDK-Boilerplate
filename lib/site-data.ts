@@ -10,10 +10,10 @@ type SiteData = {
 
 export const siteData: SiteData = {
   site: {
-    name: "AI SDK Boilerplate",
-    metaTitle: "AI SDK Boilerplate",
+    name: "HeyClaw",
+    metaTitle: "HeyClaw — The All-in-One Autonomous AI Assistant",
     metaDescription:
-      "AI SDK Boilerplate is a boilerplate for building AI SDK applications.",
+      "Deploy autonomous AI agents for your professional and personal life. 1000+ integrations, zero config, instant setup.",
   },
 }
 

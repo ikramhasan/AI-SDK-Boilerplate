@@ -5,8 +5,8 @@ import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
 import { useEffect } from "react"
-import { ChatMessages } from "@/app/_components/chat-messages"
-import { toUIMessages } from "@/app/_components/chat-utils"
+import { ChatMessages } from "@/app/chat/_components/chat-messages"
+import { toUIMessages } from "@/app/chat/_components/chat-utils"
 
 export default function SharedChatPage() {
   const params = useParams()

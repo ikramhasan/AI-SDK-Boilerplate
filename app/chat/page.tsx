@@ -5,14 +5,14 @@ import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
-import { ChatConversation } from "@/app/_components/chat-conversation"
-import { ChatAppShell } from "@/app/_components/chat-shell"
+import { ChatConversation } from "@/app/chat/_components/chat-conversation"
+import { ChatAppShell } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
   hasChatSubmission,
   toStoredMessages,
   type ChatSubmissionFile,
-} from "@/app/_components/chat-utils"
+} from "@/app/chat/_components/chat-utils"
 
 export default function Page() {
   const [chatKey, setChatKey] = useState(() => crypto.randomUUID())

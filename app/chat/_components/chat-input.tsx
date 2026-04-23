@@ -11,7 +11,7 @@ import {
   PromptInputActionAddAttachments,
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
-import { AttachmentList } from "./attachment-list";
+import { AttachmentList } from "@/app/chat/_components/attachment-list";
 import { useCallback, type KeyboardEvent } from "react";
 
 export function ChatInput({

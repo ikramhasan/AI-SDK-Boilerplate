@@ -8,15 +8,15 @@ import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect } from "react"
-import { ChatConversation } from "@/app/_components/chat-conversation"
-import { ChatAppShell, ChatShellLoading } from "@/app/_components/chat-shell"
+import { ChatConversation } from "@/app/chat/_components/chat-conversation"
+import { ChatAppShell, ChatShellLoading } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
   hasChatSubmission,
   toStoredMessages,
   toUIMessages,
   type ChatSubmissionFile,
-} from "@/app/_components/chat-utils"
+} from "@/app/chat/_components/chat-utils"
 
 export default function ChatPage() {
   const params = useParams()
