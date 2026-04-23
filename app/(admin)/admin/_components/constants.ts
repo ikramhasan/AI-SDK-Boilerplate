@@ -17,4 +17,5 @@ export const AVAILABLE_TOOLS: ToolDefinition[] = [
   { toolId: "create-chart", name: "Create Chart", description: "Create charts to visualize data" },
   { toolId: "create-document", name: "Create Document", description: "Generate a structured markdown document" },
   { toolId: "ask-user-question", name: "Ask User Question", description: "Present a multiple-choice question with a freeform reply option" },
+  { toolId: "get-current-date-time", name: "Current Date & Time", description: "Get the current date and time based on locale and timezone" },
 ] as const

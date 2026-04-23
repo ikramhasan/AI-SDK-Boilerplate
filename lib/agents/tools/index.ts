@@ -9,6 +9,7 @@ import { getCreateDocumentTool } from "./create-document";
 import { getChartImageTool } from "./get-chart-image";
 import { getDiagramImageTool } from "./get-diagram-image";
 import { getAskUserQuestionTool } from "./ask-user-question";
+import { getCurrentDateTimeTool } from "./get-current-date-time";
 
 export interface ResolvedTools {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,6 +57,9 @@ export async function resolveTools(config: any, userId: string | null): Promise<
   }
   if (enabledToolIds.has("ask-user-question")) {
     tools = { ...tools, ...getAskUserQuestionTool() };
+  }
+  if (enabledToolIds.has("get-current-date-time")) {
+    tools = { ...tools, ...getCurrentDateTimeTool() };
   }
 
   // MCP tools

@@ -23,6 +23,7 @@ import {
   composioRemoteBashConfig,
   ComposioRemoteBashContent,
 } from "./composio-remote-bash-tool";
+import { getCurrentDateTimeConfig, GetCurrentDateTimeContent } from "./get-current-date-time-tool";
 import { getDefaultConfig, DefaultToolContent } from "./default-tool";
 
 interface ToolRegistry {
@@ -48,6 +49,10 @@ const toolRegistry: Record<string, ToolRegistry> = {
   fetchImages: {
     config: fetchImagesConfig,
     Content: FetchImagesContent,
+  },
+  getCurrentDateTime: {
+    config: getCurrentDateTimeConfig,
+    Content: GetCurrentDateTimeContent,
   },
   getChartImageForDocument: {
     config: getChartImageConfig,

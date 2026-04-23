@@ -6,6 +6,7 @@ import {
   MessageQuestionIcon,
   GlobalSearchIcon,
   CalculatorIcon,
+  Calendar01Icon,
 } from "@hugeicons/core-free-icons"
 
 export function ToolIcon({ name }: { name: string }) {
@@ -56,6 +57,8 @@ export function ToolIcon({ name }: { name: string }) {
       return <HugeiconsIcon icon={GoogleDocIcon} size={16} />
     case "ask-user-question":
       return <HugeiconsIcon icon={MessageQuestionIcon} size={16} />
+    case "get-current-date-time":
+      return (<HugeiconsIcon icon={Calendar01Icon} size={16} />)
     default:
       return (
         <svg
