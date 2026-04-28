@@ -18,7 +18,6 @@ import type * as http from "../http.js";
 import type * as knowledgeFiles from "../knowledgeFiles.js";
 import type * as mcpServers from "../mcpServers.js";
 import type * as messages from "../messages.js";
-import type * as models from "../models.js";
 import type * as usage from "../usage.js";
 import type * as userAvatars from "../userAvatars.js";
 
@@ -39,7 +38,6 @@ declare const fullApi: ApiFromModules<{
   knowledgeFiles: typeof knowledgeFiles;
   mcpServers: typeof mcpServers;
   messages: typeof messages;
-  models: typeof models;
   usage: typeof usage;
   userAvatars: typeof userAvatars;
 }>;

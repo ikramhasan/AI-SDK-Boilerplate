@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     system: systemMessage,
     messages: convertedMessages,
     tools,
-    ...(config.provider === "google"
+    ...(config.providerId === "google"
       ? {
           providerOptions: {
             google: { thinkingConfig: { includeThoughts: true } },
@@ -102,7 +102,11 @@ export async function POST(req: Request) {
       }
 
       try {
-        const usage = extractUsage(tokenUsage, config.costConfig)
+        const usage = await extractUsage(
+          tokenUsage,
+          config.providerId,
+          config.modelId
+        )
         await fetchMutation(
           api.usage.record,
           {
@@ -155,7 +159,11 @@ export async function POST(req: Request) {
         })
 
         try {
-          const usage = extractUsage(titleUsage, config.costConfig)
+          const usage = await extractUsage(
+            titleUsage,
+            config.providerId,
+            config.modelId
+          )
           await fetchMutation(
             api.usage.record,
             {

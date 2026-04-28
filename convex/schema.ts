@@ -37,7 +37,12 @@ export default defineSchema({
 
   aiConfig: defineTable({
     name: v.string(),
-    modelId: v.id("models"),
+    providerId: v.string(),
+    providerName: v.string(),
+    providerNpm: v.string(),
+    providerApi: v.optional(v.string()),
+    modelId: v.string(),
+    modelName: v.string(),
     systemMessage: v.string(),
     tools: v.array(
       v.object({
@@ -47,20 +52,6 @@ export default defineSchema({
     ),
     knowledgeFileIds: v.array(v.id("knowledgeFiles")),
   }),
-
-  models: defineTable({
-    modelId: v.string(),
-    name: v.string(),
-    provider: v.string(),
-    baseUrl: v.optional(v.string()),
-    apiKey: v.string(),
-    costConfig: v.object({
-      input: v.number(),
-      output: v.number(),
-      cacheRead: v.number(),
-      cacheWrite: v.number(),
-    }),
-  }).index("by_modelId", ["modelId"]),
 
   feedback: defineTable({
     chatId: v.id("chats"),
