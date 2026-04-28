@@ -29,7 +29,7 @@ const categories = [
             <div className="space-y-1.5 text-muted-foreground">
               <div className="flex items-start gap-2">
                 <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                <span>Migrate auth to Clerk — assigned to <b className="text-foreground">@sarah</b></span>
+                <span>Migrate auth provider — assigned to <b className="text-foreground">@sarah</b></span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-chart-2" />

@@ -1,5 +1,6 @@
 import { Composio } from "@composio/core";
-import { auth } from "@clerk/nextjs/server";
+import { api } from "@/convex/_generated/api";
+import { fetchAuthQuery } from "@/lib/auth-server";
 import type {
   ToolkitDetail,
   ToolkitTool,
@@ -15,8 +16,8 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -24,7 +25,7 @@ export async function GET(
 
   try {
     // Fetch toolkit metadata and connection status in parallel
-    const session = await composio.create(userId, {
+    const session = await composio.create(user._id, {
       manageConnections: false,
     });
 

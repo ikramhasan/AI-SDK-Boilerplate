@@ -27,6 +27,8 @@ import {
   getUsers, banUser, unbanUser, makeAdmin, removeAdmin, deleteUser,
   type SerializedUser,
 } from "./_actions"
+import { authClient } from "@/lib/auth-client"
+import { toast } from "sonner"
 
 const PAGE_SIZE = 20
 
@@ -105,6 +107,23 @@ export default function UsersPage() {
       }
       await fetchUsers()
     })
+  }
+
+  const handleImpersonate = async (userId: string) => {
+    try {
+      const { error } = await authClient.admin.impersonateUser({
+        userId,
+      })
+      if (error) {
+        toast.error(error.message || "Failed to impersonate user")
+        return
+      }
+      // Full page navigation is needed because the session token has changed
+      // and the server-side token needs to be re-fetched from scratch
+      window.location.href = "/chat"
+    } catch {
+      toast.error("Failed to impersonate user")
+    }
   }
 
   return (
@@ -232,6 +251,12 @@ export default function UsersPage() {
                             ) : (
                               <DropdownMenuItem onClick={() => handleAction(user.id, "ban")}>
                                 Ban user
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {user.role !== "admin" && (
+                              <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
+                                Impersonate
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />

@@ -1,18 +1,19 @@
 import { Composio } from "@composio/core";
-import { auth } from "@clerk/nextjs/server";
+import { api } from "@/convex/_generated/api";
+import { fetchAuthQuery } from "@/lib/auth-server";
 
 const composio = new Composio();
 
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   const { connectedAccountId }: { connectedAccountId: string } =
     await req.json();
 
-  const session = await composio.create(userId, {
+  const session = await composio.create(user._id, {
     manageConnections: false,
   });
 

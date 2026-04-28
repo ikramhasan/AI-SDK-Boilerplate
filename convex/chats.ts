@@ -117,6 +117,33 @@ export const listByUser = query({
   },
 });
 
+export const listByAuthUser = query({
+  args: { authUserId: v.string() },
+  handler: async (ctx, args) => {
+    await requireAdmin(ctx);
+    const chats = (await ctx.db.query("chats").order("desc").take(500)).filter(
+      (chat) =>
+        chat.userId === args.authUserId ||
+        chat.userId.endsWith(`|${args.authUserId}`)
+    );
+
+    const chatsWithCounts = await Promise.all(
+      chats.map(async (chat) => {
+        const messages = await ctx.db
+          .query("messages")
+          .withIndex("by_chatId", (q) => q.eq("chatId", chat._id))
+          .take(500);
+        return {
+          ...chat,
+          messageCount: messages.length,
+        };
+      })
+    );
+
+    return chatsWithCounts;
+  },
+});
+
 export const search = query({
   args: { query: v.string() },
   handler: async (ctx, args) => {

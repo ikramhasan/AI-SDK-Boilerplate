@@ -33,7 +33,12 @@ export const getRuntime = internalQuery({
 export const save = mutation({
   args: {
     name: v.string(),
-    modelId: v.id("models"),
+    providerId: v.string(),
+    providerName: v.string(),
+    providerNpm: v.string(),
+    providerApi: v.optional(v.string()),
+    modelId: v.string(),
+    modelName: v.string(),
     systemMessage: v.string(),
     tools: v.array(toolValidator),
     knowledgeFileIds: v.array(v.id("knowledgeFiles")),
@@ -45,7 +50,12 @@ export const save = mutation({
     if (existing) {
       await ctx.db.patch(existing._id, {
         name: args.name,
+        providerId: args.providerId,
+        providerName: args.providerName,
+        providerNpm: args.providerNpm,
+        providerApi: args.providerApi,
         modelId: args.modelId,
+        modelName: args.modelName,
         systemMessage: args.systemMessage,
         tools: args.tools,
         knowledgeFileIds: args.knowledgeFileIds,
@@ -55,7 +65,12 @@ export const save = mutation({
 
     return await ctx.db.insert("aiConfig", {
       name: args.name,
+      providerId: args.providerId,
+      providerName: args.providerName,
+      providerNpm: args.providerNpm,
+      providerApi: args.providerApi,
       modelId: args.modelId,
+      modelName: args.modelName,
       systemMessage: args.systemMessage,
       tools: args.tools,
       knowledgeFileIds: args.knowledgeFileIds,

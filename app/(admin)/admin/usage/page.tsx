@@ -115,11 +115,17 @@ export default function UsagePage() {
     const totalOutput = filtered.reduce((s, r) => s + r.outputTokens, 0)
 
     // Top users by cost
-    const userCostMap = new Map<string, { name: string; email: string; cost: number }>()
+    const userCostMap = new Map<string, { userId: string; name: string; email: string; cost: number }>()
     for (const r of filtered) {
       const existing = userCostMap.get(r.userId)
       if (existing) existing.cost += r.cost
-      else userCostMap.set(r.userId, { name: r.userName, email: r.userEmail, cost: r.cost })
+      else
+        userCostMap.set(r.userId, {
+          userId: r.userId,
+          name: r.userName,
+          email: r.userEmail,
+          cost: r.cost,
+        })
     }
     const topUsers = [...userCostMap.values()]
       .sort((a, b) => b.cost - a.cost)
@@ -197,7 +203,7 @@ export default function UsagePage() {
           <CardContent>
             <div className="space-y-2">
               {stats.topUsers.map((u) => (
-                <div key={u.email} className="flex items-center justify-between text-sm">
+                <div key={u.userId} className="flex items-center justify-between text-sm">
                   <div>
                     <span className="font-medium">{u.name}</span>
                     <span className="ml-2 text-muted-foreground">{u.email}</span>

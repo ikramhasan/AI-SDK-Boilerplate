@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { useMutation, useQuery } from "convex/react"
-import { useAuth } from "@clerk/nextjs"
+import { useSession } from "@better-auth-ui/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
@@ -21,24 +21,25 @@ import {
 export default function ChatPage() {
   const params = useParams()
   const chatId = params.chatId as string
-  const { isLoaded, isSignedIn } = useAuth()
+  const { data: session, isPending: isLoading } = useSession()
+  const isAuthenticated = Boolean(session)
   const router = useRouter()
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (!isLoading && !isAuthenticated) {
       router.replace("/chat")
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoading, isAuthenticated, router])
 
   const chat = useQuery(
     api.chats.get,
-    isSignedIn ? { chatId: chatId as Id<"chats"> } : "skip"
+    isAuthenticated ? { chatId: chatId as Id<"chats"> } : "skip"
   )
   const storedMessages = useQuery(
     api.messages.list,
-    isSignedIn ? { chatId: chatId as Id<"chats"> } : "skip"
+    isAuthenticated ? { chatId: chatId as Id<"chats"> } : "skip"
   )
-  const shouldRedirect = isLoaded && !isSignedIn
+  const shouldRedirect = !isLoading && !isAuthenticated
 
   useEffect(() => {
     if (chat === null) {
@@ -47,7 +48,7 @@ export default function ChatPage() {
   }, [chat, router])
 
   if (
-    !isLoaded ||
+    isLoading ||
     shouldRedirect ||
     chat === undefined ||
     storedMessages === undefined ||

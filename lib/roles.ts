@@ -1,7 +1,8 @@
-import { auth } from "@clerk/nextjs/server"
-import type { Roles } from "@/types/globals"
+import { api } from "@/convex/_generated/api";
+import { fetchAuthQuery } from "@/lib/auth-server";
+import type { Roles } from "@/types/globals";
 
 export async function checkRole(role: Roles): Promise<boolean> {
-  const { sessionClaims } = await auth()
-  return sessionClaims?.metadata?.role === role
+  if (role !== "admin") return false;
+  return await fetchAuthQuery(api.adminUsers.hasAdminPermission, {});
 }

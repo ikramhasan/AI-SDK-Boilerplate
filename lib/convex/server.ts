@@ -1,31 +1,24 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
 import { ConvexHttpClient } from "convex/browser";
 import type {
   FunctionReference,
   FunctionReturnType,
   OptionalRestArgs,
 } from "convex/server";
+import { api } from "@/convex/_generated/api";
+import { fetchAuthQuery, getToken } from "@/lib/auth-server";
 
 export async function requireCurrentUserConvexAuth() {
-  const authObject = await auth();
+  const token = await getToken();
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
 
-  if (!authObject.userId) {
+  if (!token || !user) {
     throw new Error("Not authenticated");
   }
 
-  const token =
-    authObject.sessionClaims?.aud === "convex"
-      ? await authObject.getToken()
-      : await authObject.getToken({ template: "convex" });
-
-  if (!token) {
-    throw new Error("Failed to obtain Convex token");
-  }
-
   return {
-    userId: authObject.userId,
+    userId: user._id,
     token,
   };
 }

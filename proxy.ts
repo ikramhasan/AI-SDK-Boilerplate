@@ -1,31 +1,57 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server";
+import { getToken as getConvexToken } from "@convex-dev/better-auth/utils";
+import { fetchQuery } from "convex/nextjs";
+import { api } from "@/convex/_generated/api";
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/api/chat(.*)",
-  "/share/(.*)",
-  "/api/integrations(.*)",
-])
+function isProtectedRoute(pathname: string) {
+  return (
+    pathname === "/chat" ||
+    pathname.startsWith("/chat/") ||
+    pathname === "/integrations" ||
+    pathname.startsWith("/integrations/") ||
+    pathname.startsWith("/settings/")
+  );
+}
 
-const isAdminRoute = createRouteMatcher(["/admin(.*)"])
+function isAdminRoute(pathname: string) {
+  return pathname === "/admin" || pathname.startsWith("/admin/");
+}
 
-export default clerkMiddleware(async (auth, req) => {
-  if (isAdminRoute(req)) {
-    const { sessionClaims } = await auth()
-    if (sessionClaims?.metadata?.role !== "admin") {
-      return NextResponse.redirect(new URL("/", req.url))
+export async function proxy(request: NextRequest) {
+  const { token } = await getConvexToken(
+    process.env.NEXT_PUBLIC_CONVEX_SITE_URL!,
+    new Headers(request.headers)
+  );
+  const isAuthenticated = Boolean(token);
+
+  if (isAdminRoute(request.nextUrl.pathname)) {
+    if (!isAuthenticated) {
+      return NextResponse.redirect(new URL("/auth/sign-in", request.url));
+    }
+
+    const isAdmin = await fetchQuery(
+      api.adminUsers.hasAdminPermission,
+      {},
+      { token }
+    );
+
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 
-  if (!isPublicRoute(req)) {
-    await auth.protect()
+  if (isProtectedRoute(request.nextUrl.pathname) && !isAuthenticated) {
+    return NextResponse.redirect(new URL("/auth/sign-in", request.url));
   }
-})
+
+  return NextResponse.next();
+}
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    "/(api|trpc)(.*)",
+    "/chat/:path*",
+    "/integrations/:path*",
+    "/settings/:path*",
+    "/admin/:path*",
   ],
-}
+};
