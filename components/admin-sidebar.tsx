@@ -11,20 +11,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   Settings02Icon,
-  UserIcon,
-  Logout03Icon,
   MessageMultiple02Icon,
   UserMultiple02Icon,
   ArrowLeft01Icon,
@@ -32,14 +21,12 @@ import {
   ChartLineData03Icon,
   AiBrain05Icon,
 } from "@hugeicons/core-free-icons"
-import { useClerk, useUser } from "@clerk/nextjs"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { getSiteName } from "@/lib/site-data"
+import { UserButton } from "@/components/user/user-button"
 
 export function AdminSidebar() {
-  const { user, isLoaded } = useUser()
-  const { signOut, openUserProfile } = useClerk()
   const pathname = usePathname()
   const siteName = getSiteName()
   const navItems = [
@@ -114,50 +101,7 @@ export function AdminSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        {isLoaded && user && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <SidebarMenuButton className="h-auto p-2">
-                <Avatar size="sm">
-                  <AvatarImage src={user.imageUrl} alt={user.fullName ?? ""} />
-                  <AvatarFallback>
-                    {user.firstName?.charAt(0) ?? ""}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-sm font-medium">
-                  {user.fullName}
-                </span>
-              </SidebarMenuButton>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              className="w-(--radix-dropdown-menu-trigger-width)"
-            >
-              <DropdownMenuLabel className="flex items-center gap-2 font-normal">
-                <Avatar size="sm">
-                  <AvatarImage
-                    src={user.imageUrl}
-                    alt={user.fullName ?? ""}
-                  />
-                  <AvatarFallback>
-                    {user.firstName?.charAt(0) ?? ""}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="truncate text-sm">{user.fullName}</span>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={() => openUserProfile()}>
-                <HugeiconsIcon icon={UserIcon} size={16} />
-                Manage Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => signOut()}>
-                <HugeiconsIcon icon={Logout03Icon} size={16} />
-                Sign out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        <UserButton align="start" sideOffset={8} className="w-full" />
       </SidebarFooter>
     </Sidebar>
   )

@@ -1,8 +1,51 @@
+import { createClient, type GenericCtx } from "@convex-dev/better-auth";
+import { convex } from "@convex-dev/better-auth/plugins";
+import { betterAuth, type BetterAuthOptions } from "better-auth/minimal";
+import { admin } from "better-auth/plugins";
 import type { Doc, Id } from "./_generated/dataModel";
-import type {
-  MutationCtx,
-  QueryCtx,
-} from "./_generated/server";
+import { components } from "./_generated/api";
+import type { DataModel } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import authConfig from "./auth.config";
+import authSchema from "./betterAuth/schema";
+
+const siteUrl =
+  process.env.SITE_URL ??
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  "http://localhost:3000";
+
+export const createAuthOptions = (ctx: GenericCtx<DataModel>) =>
+  ({
+    baseURL: siteUrl,
+    secret: process.env.BETTER_AUTH_SECRET,
+    database: authComponent.adapter(ctx),
+    socialProviders: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      },
+    },
+    plugins: [
+      admin({
+        defaultRole: "user",
+        adminRoles: ["admin"],
+      }),
+      convex({ authConfig }),
+    ],
+  }) satisfies BetterAuthOptions;
+
+export const createAuth = (ctx: GenericCtx<DataModel>) => {
+  return betterAuth(createAuthOptions(ctx));
+};
+
+export const authComponent = createClient<DataModel, typeof authSchema>(
+  components.betterAuth,
+  {
+    local: {
+      schema: authSchema,
+    },
+  }
+);
 
 type AuthenticatedCtx = QueryCtx | MutationCtx;
 
@@ -15,14 +58,21 @@ export async function requireAuth(ctx: AuthenticatedCtx) {
 }
 
 export async function requireAdmin(ctx: AuthenticatedCtx) {
-  const identity = await requireAuth(ctx);
-  const role = (identity.metadata as { role?: unknown } | undefined)?.role;
+  await requireAuth(ctx);
 
-  if (role !== "admin") {
+  const { auth, headers } = await authComponent.getAuth(createAuth, ctx);
+  const result = await auth.api.userHasPermission({
+    body: {
+      permissions: {
+        user: ["list"],
+      },
+    },
+    headers,
+  });
+
+  if (!result.success) {
     throw new Error("Unauthorized");
   }
-
-  return identity;
 }
 
 export async function requireChatOwner(
@@ -59,3 +109,5 @@ export async function requireChatReadAccess(
 
   return { identity, chat };
 }
+
+export const { getAuthUser } = authComponent.clientApi();

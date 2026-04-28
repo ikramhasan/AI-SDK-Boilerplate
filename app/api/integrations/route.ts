@@ -1,5 +1,6 @@
 import { Composio } from "@composio/core";
-import { auth } from "@clerk/nextjs/server";
+import { api } from "@/convex/_generated/api";
+import { fetchAuthQuery } from "@/lib/auth-server";
 
 const composio = new Composio();
 
@@ -28,8 +29,8 @@ function serializeToolkit(t: {
 
 // List all toolkits with cursor pagination
 export async function GET(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
@@ -37,7 +38,7 @@ export async function GET(req: Request) {
   const nextCursor = url.searchParams.get("nextCursor") || undefined;
   const search = url.searchParams.get("search") || undefined;
 
-  const session = await composio.create(userId, {
+  const session = await composio.create(user._id, {
     manageConnections: false,
   });
 
@@ -79,15 +80,15 @@ export async function GET(req: Request) {
 
 // Start an OAuth flow for a given toolkit
 export async function POST(req: Request) {
-  const { userId } = await auth();
-  if (!userId) {
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  if (!user) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   const { toolkit }: { toolkit: string } = await req.json();
   const origin = new URL(req.url).origin;
 
-  const session = await composio.create(userId, {
+  const session = await composio.create(user._id, {
     manageConnections: false,
   });
   const connectionRequest = await session.authorize(toolkit, {

@@ -1,12 +1,8 @@
 import { Geist, Geist_Mono } from "next/font/google"
-import { TooltipProvider } from "@/components/ui/tooltip"
 import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
 import { cn } from "@/lib/utils";
-import { ClerkProvider } from "@clerk/nextjs";
-import ConvexClientProvider from "@/components/clerk-convex-provider";
-import { CommandMenu } from "@/components/command-menu";
-import { QueryProvider } from "@/lib/query-provider";
+import { AppProviders } from "@/components/app-providers";
+import { getToken } from "@/lib/auth-server";
 import { getSiteMetadata, getSiteName } from "@/lib/site-data";
 import type { Metadata } from "next";
 
@@ -36,11 +32,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const initialToken = await getToken();
+
   return (
     <html
       lang="en"
@@ -48,18 +46,7 @@ export default function RootLayout({
       className={cn("antialiased", fontMono.variable, "font-sans", geist.variable)}
     >
       <body>
-        <TooltipProvider>
-          <ClerkProvider>
-            <ConvexClientProvider>
-              <QueryProvider>
-                <ThemeProvider>
-                  <CommandMenu />
-                  {children}
-                </ThemeProvider>
-              </QueryProvider>
-            </ConvexClientProvider>
-          </ClerkProvider>
-        </TooltipProvider>
+        <AppProviders initialToken={initialToken}>{children}</AppProviders>
       </body>
     </html>
   )

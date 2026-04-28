@@ -115,4 +115,9 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_source", ["source"])
     .index("by_userId_and_source", ["userId", "source"]),
+
+  userAvatars: defineTable({
+    userId: v.string(),
+    storageId: v.id("_storage"),
+  }).index("by_userId", ["userId"]),
 });

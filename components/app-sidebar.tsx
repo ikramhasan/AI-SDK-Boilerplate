@@ -14,7 +14,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,8 +28,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -41,8 +38,6 @@ import {
   Edit02Icon,
   Search01Icon,
   MessageMultiple02Icon,
-  UserIcon,
-  Logout03Icon,
   Settings02Icon,
   MoreVerticalCircle01Icon,
   Delete02Icon,
@@ -51,12 +46,12 @@ import {
   FileExportIcon,
 } from "@hugeicons/core-free-icons"
 import { FileTextIcon, FileIcon, FileDownIcon } from "lucide-react"
-import { SignInButton, useAuth, useClerk, useUser } from "@clerk/nextjs"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { useQuery, useMutation } from "convex/react"
+import { useSession } from "@better-auth-ui/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { getSiteName } from "@/lib/site-data"
@@ -65,15 +60,19 @@ import { Kbd, KbdGroup } from "./ui/kbd"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { ShareChatDialog } from "./share-chat-dialog"
 import { exportAsMarkdown, exportAsDocx, exportAsPdf } from "@/lib/export-chat"
+import { UserButton } from "@/components/user/user-button"
 
 export function AppSidebar() {
-  const { user, isSignedIn, isLoaded } = useUser()
-  const { signOut, openUserProfile } = useClerk()
+  const { data: session, isPending: isLoading } = useSession()
+  const isAuthenticated = Boolean(session)
   const router = useRouter()
   const isMac = useIsMac()
   const params = useParams()
   const activeChatId = params?.chatId as string | undefined
-  const recentChatsQuery = useQuery(api.chats.list, isSignedIn ? {} : "skip")
+  const recentChatsQuery = useQuery(
+    api.chats.list,
+    isAuthenticated ? {} : "skip"
+  )
   const isLoadingChats = recentChatsQuery === undefined
   const recentChats = recentChatsQuery ?? []
   const removeChat = useMutation(api.chats.remove)
@@ -85,8 +84,10 @@ export function AppSidebar() {
   const streamedTitleTimeoutsRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({})
-  const { sessionClaims } = useAuth()
-  const isAdmin = sessionClaims?.metadata?.role === "admin"
+  const isAdmin = useQuery(
+    api.adminUsers.hasAdminPermission,
+    isAuthenticated ? {} : "skip"
+  )
   const shareChatIsShared =
     recentChats.find((c) => c._id === shareChatId)?.isShared ?? false
   const siteName = getSiteName()
@@ -320,7 +321,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-3">
-        {!isLoaded ? null : isSignedIn ? (
+        {isLoading ? null : isAuthenticated ? (
           <>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -331,7 +332,7 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {isAdmin && (
+              {isAdmin === true && (
                 <SidebarMenuItem>
                   <SidebarMenuButton tooltip="Admin" asChild>
                     <Link href="/admin">
@@ -342,58 +343,14 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
             </SidebarMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="h-auto p-2">
-                  <Avatar size="sm">
-                    <AvatarImage
-                      src={user?.imageUrl}
-                      alt={user?.fullName ?? ""}
-                    />
-                    <AvatarFallback>
-                      {user?.firstName?.charAt(0) ?? ""}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-sm font-medium">
-                    {user?.fullName}
-                  </span>
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                side="top"
-                align="start"
-                className="w-(--radix-dropdown-menu-trigger-width)"
-              >
-                <DropdownMenuLabel className="flex items-center gap-2 font-normal">
-                  <Avatar size="sm">
-                    <AvatarImage
-                      src={user?.imageUrl}
-                      alt={user?.fullName ?? ""}
-                    />
-                    <AvatarFallback>
-                      {user?.firstName?.charAt(0) ?? ""}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-sm">{user?.fullName}</span>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => openUserProfile()}>
-                  <HugeiconsIcon icon={UserIcon} size={16} />
-                  Manage Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => signOut()}>
-                  <HugeiconsIcon icon={Logout03Icon} size={16} />
-                  Sign out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserButton align="start" sideOffset={8} className="w-full" />
           </>
         ) : (
-          <SignInButton mode="modal">
-            <Button variant="outline" className="w-full">
+          <Button variant="outline" className="w-full" asChild>
+            <Link href="/auth/sign-in">
               Sign in
-            </Button>
-          </SignInButton>
+            </Link>
+          </Button>
         )}
       </SidebarFooter>
 
