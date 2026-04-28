@@ -42,6 +42,20 @@ function NewChatView() {
 
   const { messages, sendMessage, status, stop } = useChat({
     transport: chatTransport,
+    onData: (dataPart) => {
+      if (dataPart.type !== "data-title") return
+
+      const data = dataPart.data as { chatId?: unknown; title?: unknown }
+      if (typeof data.chatId !== "string" || typeof data.title !== "string") {
+        return
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("chat-title-available", {
+          detail: { chatId: data.chatId, title: data.title },
+        })
+      )
+    },
     onFinish: async ({ messages: allMessages }) => {
       const id = chatIdRef.current
       if (!id) return
@@ -73,23 +87,27 @@ function NewChatView() {
         }
       }
 
-      // Fire-and-forget title generation on first message
-      if (chatIdRef.current && !titleGeneratedRef.current && text.trim()) {
+      const shouldGenerateTitle =
+        Boolean(chatIdRef.current) &&
+        !titleGeneratedRef.current &&
+        Boolean(text.trim())
+      if (shouldGenerateTitle) {
         titleGeneratedRef.current = true
-        fetch("/api/generate-title", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chatId: chatIdRef.current,
-            userMessage: text.trim(),
-          }),
-        }).catch(console.error)
       }
 
-      sendMessage({
-        text,
-        ...(files.length > 0 ? { files } : {}),
-      })
+      sendMessage(
+        {
+          text,
+          ...(files.length > 0 ? { files } : {}),
+        },
+        {
+          body: {
+            chatId: chatIdRef.current,
+            generateTitle: shouldGenerateTitle,
+            titleUserMessage: shouldGenerateTitle ? text.trim() : undefined,
+          },
+        }
+      )
     },
     [createChat, sendMessage]
   )

@@ -55,19 +55,16 @@ import { SignInButton, useAuth, useClerk, useUser } from "@clerk/nextjs"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { getSiteName } from "@/lib/site-data"
+import { TextAnimate } from "@/components/text-animate"
 import { Kbd, KbdGroup } from "./ui/kbd"
 import { useIsMac } from "@/hooks/use-is-mac"
 import { ShareChatDialog } from "./share-chat-dialog"
-import {
-  exportAsMarkdown,
-  exportAsDocx,
-  exportAsPdf,
-} from "@/lib/export-chat"
+import { exportAsMarkdown, exportAsDocx, exportAsPdf } from "@/lib/export-chat"
 
 export function AppSidebar() {
   const { user, isSignedIn, isLoaded } = useUser()
@@ -82,10 +79,46 @@ export function AppSidebar() {
   const removeChat = useMutation(api.chats.remove)
   const [shareChatId, setShareChatId] = useState<string | null>(null)
   const [deleteChatId, setDeleteChatId] = useState<string | null>(null)
+  const [streamedTitles, setStreamedTitles] = useState<Record<string, string>>(
+    {}
+  )
+  const streamedTitleTimeoutsRef = useRef<
+    Record<string, ReturnType<typeof setTimeout>>
+  >({})
   const { sessionClaims } = useAuth()
   const isAdmin = sessionClaims?.metadata?.role === "admin"
-  const shareChatIsShared = recentChats.find((c) => c._id === shareChatId)?.isShared ?? false
+  const shareChatIsShared =
+    recentChats.find((c) => c._id === shareChatId)?.isShared ?? false
   const siteName = getSiteName()
+
+  useEffect(() => {
+    const streamedTitleTimeouts = streamedTitleTimeoutsRef.current
+
+    const handleTitleAvailable = (event: Event) => {
+      const { chatId, title } = (event as CustomEvent).detail ?? {}
+      if (typeof chatId !== "string" || typeof title !== "string") return
+
+      setStreamedTitles((current) => ({ ...current, [chatId]: title }))
+
+      clearTimeout(streamedTitleTimeouts[chatId])
+      streamedTitleTimeouts[chatId] = setTimeout(() => {
+        setStreamedTitles((current) => {
+          const next = { ...current }
+          delete next[chatId]
+          return next
+        })
+        delete streamedTitleTimeouts[chatId]
+      }, 2400)
+    }
+
+    window.addEventListener("chat-title-available", handleTitleAvailable)
+    return () => {
+      window.removeEventListener("chat-title-available", handleTitleAvailable)
+      for (const timeout of Object.values(streamedTitleTimeouts)) {
+        clearTimeout(timeout)
+      }
+    }
+  }, [])
 
   const handleExportChat = async (
     chatId: string,
@@ -107,7 +140,7 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-3">
-        <div className="flex items-center gap-2 px-2 mb-2">
+        <div className="mb-2 flex items-center gap-2 px-2">
           <Image
             src="/logo.webp"
             alt={siteName}
@@ -115,18 +148,16 @@ export function AppSidebar() {
             height={16}
             className="rounded"
           />
-          <span className="text-sm font-semibold truncate">
-            {siteName}
-          </span>
+          <span className="truncate text-sm font-semibold">{siteName}</span>
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="New chat"
-              className="flex justify-between items-center"
+              className="flex items-center justify-between"
               onClick={() => {
-                window.dispatchEvent(new Event("new-chat"));
-                router.push("/chat");
+                window.dispatchEvent(new Event("new-chat"))
+                router.push("/chat")
               }}
             >
               <div className="flex items-center justify-center gap-2">
@@ -143,7 +174,7 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Search"
-              className="flex justify-between items-center"
+              className="flex items-center justify-between"
               onClick={() => {
                 window.dispatchEvent(
                   new KeyboardEvent("keydown", { key: "k", metaKey: true })
@@ -174,7 +205,7 @@ export function AppSidebar() {
                   {[75, 90, 60, 85, 70, 80].map((width, i) => (
                     <div
                       key={i}
-                      className="h-8 rounded-md bg-muted/50 animate-pulse"
+                      className="h-8 animate-pulse rounded-md bg-muted/50"
                       style={{ width: `${width}%` }}
                     />
                   ))}
@@ -189,74 +220,99 @@ export function AppSidebar() {
                   No chats yet
                 </div>
               ) : (
-                recentChats.map((chat) => (
-                  <SidebarMenuItem key={chat._id}>
-                    <SidebarMenuButton
-                      tooltip={chat.title}
-                      isActive={activeChatId === chat._id}
-                      asChild
-                    >
-                      <Link href={`/chat/${chat._id}`}>
-                        <span className="truncate">{chat.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <SidebarMenuAction showOnHover aria-label="More options">
-                          <HugeiconsIcon icon={MoreVerticalCircle01Icon} size={16} />
-                        </SidebarMenuAction>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="bottom" align="start">
-                        <DropdownMenuItem
-                          onSelect={() => setShareChatId(chat._id)}
-                        >
-                          <HugeiconsIcon icon={Share08Icon} size={16} />
-                          Share
-                        </DropdownMenuItem>
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <HugeiconsIcon icon={FileExportIcon} size={16} />
-                            Export
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem
-                              onSelect={() =>
-                                handleExportChat(chat._id, "markdown", chat.title)
-                              }
+                recentChats.map((chat) => {
+                  const streamedTitle = streamedTitles[chat._id]
+                  const title = streamedTitle ?? chat.title
+
+                  return (
+                    <SidebarMenuItem key={chat._id}>
+                      <SidebarMenuButton
+                        tooltip={title}
+                        isActive={activeChatId === chat._id}
+                        asChild
+                      >
+                        <Link href={`/chat/${chat._id}`}>
+                          {streamedTitle ? (
+                            <TextAnimate
+                              key={`${chat._id}-${streamedTitle}`}
+                              as="span"
+                              animation="blurIn"
+                              by="word"
+                              className="min-w-0 truncate"
+                              duration={0.35}
+                              startOnView={false}
                             >
-                              <FileTextIcon className="size-4" />
-                              Markdown
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() =>
-                                handleExportChat(chat._id, "docx", chat.title)
-                              }
-                            >
-                              <FileIcon className="size-4" />
-                              Word (.docx)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onSelect={() =>
-                                handleExportChat(chat._id, "pdf", chat.title)
-                              }
-                            >
-                              <FileDownIcon className="size-4" />
-                              PDF
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem
-                          variant="destructive"
-                          className="text-destructive"
-                          onSelect={() => setDeleteChatId(chat._id)}
-                        >
-                          <HugeiconsIcon icon={Delete02Icon} size={16} />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </SidebarMenuItem>
-                ))
+                              {title}
+                            </TextAnimate>
+                          ) : (
+                            <span className="truncate">{title}</span>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuAction
+                            showOnHover
+                            aria-label="More options"
+                          >
+                            <HugeiconsIcon
+                              icon={MoreVerticalCircle01Icon}
+                              size={16}
+                            />
+                          </SidebarMenuAction>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="bottom" align="start">
+                          <DropdownMenuItem
+                            onSelect={() => setShareChatId(chat._id)}
+                          >
+                            <HugeiconsIcon icon={Share08Icon} size={16} />
+                            Share
+                          </DropdownMenuItem>
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <HugeiconsIcon icon={FileExportIcon} size={16} />
+                              Export
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  handleExportChat(chat._id, "markdown", title)
+                                }
+                              >
+                                <FileTextIcon className="size-4" />
+                                Markdown
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  handleExportChat(chat._id, "docx", title)
+                                }
+                              >
+                                <FileIcon className="size-4" />
+                                Word (.docx)
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  handleExportChat(chat._id, "pdf", title)
+                                }
+                              >
+                                <FileDownIcon className="size-4" />
+                                PDF
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            className="text-destructive"
+                            onSelect={() => setDeleteChatId(chat._id)}
+                          >
+                            <HugeiconsIcon icon={Delete02Icon} size={16} />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </SidebarMenuItem>
+                  )
+                })
               )}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -290,7 +346,10 @@ export function AppSidebar() {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton className="h-auto p-2">
                   <Avatar size="sm">
-                    <AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ""} />
+                    <AvatarImage
+                      src={user?.imageUrl}
+                      alt={user?.fullName ?? ""}
+                    />
                     <AvatarFallback>
                       {user?.firstName?.charAt(0) ?? ""}
                     </AvatarFallback>
@@ -307,7 +366,10 @@ export function AppSidebar() {
               >
                 <DropdownMenuLabel className="flex items-center gap-2 font-normal">
                   <Avatar size="sm">
-                    <AvatarImage src={user?.imageUrl} alt={user?.fullName ?? ""} />
+                    <AvatarImage
+                      src={user?.imageUrl}
+                      alt={user?.fullName ?? ""}
+                    />
                     <AvatarFallback>
                       {user?.firstName?.charAt(0) ?? ""}
                     </AvatarFallback>
@@ -354,7 +416,8 @@ export function AppSidebar() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete chat?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this chat and all its messages. This action cannot be undone.
+              This will permanently delete this chat and all its messages. This
+              action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
