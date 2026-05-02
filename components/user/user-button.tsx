@@ -1,18 +1,22 @@
 "use client"
 
 import { useAuth, useSession } from "@better-auth-ui/react"
+import { useQuery } from "convex/react"
 import {
   ChevronsUpDown,
   LogIn,
   LogOut,
   Monitor,
   Moon,
+  Plug,
+  ShieldCheck,
   Settings,
   Sun,
   UserPlus2,
-  UsersRound
+  UsersRound,
 } from "lucide-react"
 
+import { api } from "@/convex/_generated/api"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -22,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubTrigger,
-  DropdownMenuTrigger
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
@@ -65,7 +69,7 @@ export function UserButton({
   sideOffset,
   size = "default",
   themeToggle = true,
-  variant = "ghost"
+  variant = "ghost",
 }: UserButtonProps) {
   const {
     basePaths,
@@ -73,10 +77,14 @@ export function UserButton({
     localization,
     multiSession,
     Link,
-    appearance: { theme, setTheme, themes }
+    appearance: { theme, setTheme, themes },
   } = useAuth()
 
   const { data: session, isPending: sessionPending } = useSession()
+  const isAdmin = useQuery(
+    api.adminUsers.hasAdminPermission,
+    session ? {} : "skip"
+  )
 
   return (
     <DropdownMenu>
@@ -92,7 +100,7 @@ export function UserButton({
         ) : (
           <Button
             variant={variant}
-            className={cn("py-2.5 h-auto font-normal", className)}
+            className={cn("h-auto py-2.5 font-normal", className)}
             size="lg"
           >
             {session || sessionPending ? (
@@ -113,7 +121,7 @@ export function UserButton({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-[--radix-dropdown-menu-trigger-width] min-w-40 md:min-w-56 max-w-[48svw]"
+        className="w-[--radix-dropdown-menu-trigger-width] max-w-[48svw] min-w-40 md:min-w-56"
         sideOffset={sideOffset}
         align={align}
         onCloseAutoFocus={(e) => e.preventDefault()}
@@ -140,6 +148,22 @@ export function UserButton({
               </Link>
             </DropdownMenuItem>
 
+            <DropdownMenuItem asChild>
+              <Link href="/integrations">
+                <Plug className="text-muted-foreground" />
+                Integrations
+              </Link>
+            </DropdownMenuItem>
+
+            {isAdmin === true && (
+              <DropdownMenuItem asChild>
+                <Link href="/admin">
+                  <ShieldCheck className="text-muted-foreground" />
+                  Admin
+                </Link>
+              </DropdownMenuItem>
+            )}
+
             {multiSession && (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
@@ -157,7 +181,7 @@ export function UserButton({
             {themeToggle && theme && setTheme && !!themes?.length && (
               <>
                 <DropdownMenuItem
-                  className="justify-between py-0.75 hover:bg-transparent! cursor-default!"
+                  className="cursor-default! justify-between py-0.75 hover:bg-transparent!"
                   onSelect={(e) => e.preventDefault()}
                 >
                   {localization.settings.theme}

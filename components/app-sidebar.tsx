@@ -38,11 +38,9 @@ import {
   Edit02Icon,
   Search01Icon,
   MessageMultiple02Icon,
-  Settings02Icon,
   MoreVerticalCircle01Icon,
   Delete02Icon,
   Share08Icon,
-  ConnectIcon,
   FileExportIcon,
 } from "@hugeicons/core-free-icons"
 import { FileTextIcon, FileIcon, FileDownIcon } from "lucide-react"
@@ -84,10 +82,6 @@ export function AppSidebar() {
   const streamedTitleTimeoutsRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({})
-  const isAdmin = useQuery(
-    api.adminUsers.hasAdminPermission,
-    isAuthenticated ? {} : "skip"
-  )
   const shareChatIsShared =
     recentChats.find((c) => c._id === shareChatId)?.isShared ?? false
   const siteName = getSiteName()
@@ -322,34 +316,10 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         {isLoading ? null : isAuthenticated ? (
-          <>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Integrations" asChild>
-                  <Link href="/integrations">
-                    <HugeiconsIcon icon={ConnectIcon} size={18} />
-                    <span>Integrations</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {isAdmin === true && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton tooltip="Admin" asChild>
-                    <Link href="/admin">
-                      <HugeiconsIcon icon={Settings02Icon} size={18} />
-                      <span>Admin</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-            <UserButton align="start" sideOffset={8} className="w-full" />
-          </>
+          <UserButton align="start" sideOffset={8} className="w-full" />
         ) : (
           <Button variant="outline" className="w-full" asChild>
-            <Link href="/auth/sign-in">
-              Sign in
-            </Link>
+            <Link href="/auth/sign-in">Sign in</Link>
           </Button>
         )}
       </SidebarFooter>
