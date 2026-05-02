@@ -149,7 +149,7 @@ export function UserButton({
             </DropdownMenuItem>
 
             <DropdownMenuItem asChild>
-              <Link href="/integrations">
+              <Link href="/settings/integrations">
                 <Plug className="text-muted-foreground" />
                 Integrations
               </Link>

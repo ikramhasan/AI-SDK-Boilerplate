@@ -1,53 +1,48 @@
-"use client";
+"use client"
 
-import { useState, useMemo } from "react";
-import { useDebounce } from "@uidotdev/usehooks";
-import Link from "next/link";
-import { AppSidebar } from "@/components/app-sidebar";
+import { useState, useMemo } from "react"
+import { useDebounce } from "@uidotdev/usehooks"
+import Link from "next/link"
+import { AppSidebar } from "@/components/app-sidebar"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Separator } from "@/components/ui/separator";
-import { Spinner } from "@/components/ui/spinner";
+} from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import {
   useToolkits,
   useConnectToolkit,
   useDisconnectToolkit,
-} from "@/lib/integrations/hooks";
-import type { ToolkitListItem } from "./types";
+} from "@/lib/integrations/hooks"
+import type { ToolkitListItem } from "./types"
 
 export default function IntegrationsPage() {
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 350);
+  const [search, setSearch] = useState("")
+  const debouncedSearch = useDebounce(search, 350)
 
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useToolkits(debouncedSearch);
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useToolkits(debouncedSearch)
 
-  const connectMutation = useConnectToolkit();
-  const disconnectMutation = useDisconnectToolkit();
+  const connectMutation = useConnectToolkit()
+  const disconnectMutation = useDisconnectToolkit()
 
   const toolkits = useMemo(
     () => data?.pages.flatMap((p) => p.toolkits) ?? [],
     [data]
-  );
+  )
   const connected = useMemo(
     () => data?.pages[0]?.connectedToolkits ?? [],
     [data]
-  );
+  )
 
-  const totalPages = data?.pages[0]?.totalPages ?? null;
-  const currentPage = data?.pages.length ?? 0;
-  const available = toolkits;
+  const totalPages = data?.pages[0]?.totalPages ?? null
+  const currentPage = data?.pages.length ?? 0
+  const available = toolkits
 
   // Track which toolkit slug currently has a pending connect/disconnect so the
   // corresponding button can show a loading state. `connectMutation.variables`
@@ -56,13 +51,13 @@ export default function IntegrationsPage() {
   // `isPending` ensures the disabled state clears after both success and error.
   const connectingSlug = connectMutation.isPending
     ? (connectMutation.variables ?? null)
-    : null;
+    : null
   const disconnectingSlug = disconnectMutation.isPending
     ? (connected.find(
-        (t) => t.connectedAccountId === disconnectMutation.variables,
+        (t) => t.connectedAccountId === disconnectMutation.variables
       )?.slug ?? null)
-    : null;
-  const actionSlug = connectingSlug ?? disconnectingSlug;
+    : null
+  const actionSlug = connectingSlug ?? disconnectingSlug
 
   return (
     <SidebarProvider>
@@ -102,9 +97,7 @@ export default function IntegrationsPage() {
                   <ConnectedSection
                     toolkits={connected}
                     actionSlug={actionSlug}
-                    onDisconnect={(id) =>
-                      disconnectMutation.mutate(id)
-                    }
+                    onDisconnect={(id) => disconnectMutation.mutate(id)}
                   />
                 )}
 
@@ -147,7 +140,7 @@ export default function IntegrationsPage() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -159,9 +152,9 @@ function ConnectedSection({
   actionSlug,
   onDisconnect,
 }: {
-  toolkits: ToolkitListItem[];
-  actionSlug: string | null;
-  onDisconnect: (connectedAccountId: string) => void;
+  toolkits: ToolkitListItem[]
+  actionSlug: string | null
+  onDisconnect: (connectedAccountId: string) => void
 }) {
   return (
     <section className="space-y-3">
@@ -172,7 +165,7 @@ function ConnectedSection({
         {toolkits.map((t, i) => (
           <div key={`connected-${t.slug}`}>
             <Link
-              href={`/integrations/${t.slug}?name=${encodeURIComponent(t.name)}`}
+              href={`/settings/integrations/${t.slug}?name=${encodeURIComponent(t.name)}`}
               className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50 ${
                 i === 0 ? "rounded-t-xl" : ""
               } ${i === toolkits.length - 1 ? "rounded-b-xl" : ""}`}
@@ -181,10 +174,7 @@ function ConnectedSection({
                 <ToolkitLogo name={t.name} logo={t.logo} />
                 <div>
                   <p className="text-sm font-medium">{t.name}</p>
-                  <Badge
-                    variant="outline"
-                    className="text-xs text-green-600"
-                  >
+                  <Badge variant="outline" className="text-xs text-green-600">
                     Connected
                   </Badge>
                 </div>
@@ -194,9 +184,9 @@ function ConnectedSection({
                 size="sm"
                 disabled={actionSlug === t.slug}
                 onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onDisconnect(t.connectedAccountId!);
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onDisconnect(t.connectedAccountId!)
                 }}
               >
                 {actionSlug === t.slug ? "Disconnecting…" : "Disconnect"}
@@ -207,7 +197,7 @@ function ConnectedSection({
         ))}
       </div>
     </section>
-  );
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -221,11 +211,11 @@ function AvailableSection({
   actionSlug,
   onConnect,
 }: {
-  toolkits: ToolkitListItem[];
-  totalPages: number | null;
-  search: string;
-  actionSlug: string | null;
-  onConnect: (slug: string) => void;
+  toolkits: ToolkitListItem[]
+  totalPages: number | null
+  search: string
+  actionSlug: string | null
+  onConnect: (slug: string) => void
 }) {
   return (
     <section className="space-y-3">
@@ -237,7 +227,7 @@ function AvailableSection({
         {toolkits.map((t, i) => (
           <div key={`available-${t.slug}`}>
             <Link
-              href={`/integrations/${t.slug}?name=${encodeURIComponent(t.name)}`}
+              href={`/settings/integrations/${t.slug}?name=${encodeURIComponent(t.name)}`}
               className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/50 ${
                 i === 0 ? "rounded-t-xl" : ""
               } ${i === toolkits.length - 1 ? "rounded-b-xl" : ""}`}
@@ -250,9 +240,9 @@ function AvailableSection({
                 size="sm"
                 disabled={actionSlug === t.slug}
                 onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onConnect(t.slug);
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onConnect(t.slug)
                 }}
               >
                 {actionSlug === t.slug ? "Connecting…" : "Connect"}
@@ -263,7 +253,7 @@ function AvailableSection({
         ))}
       </div>
     </section>
-  );
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -275,25 +265,23 @@ function ToolkitLogo({
   logo,
   muted,
 }: {
-  name: string;
-  logo?: string;
-  muted?: boolean;
+  name: string
+  logo?: string
+  muted?: boolean
 }) {
   if (logo) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={logo} alt={name} className="size-8 rounded-lg" />
-    );
+    )
   }
   return (
     <div
       className={`flex size-8 items-center justify-center rounded-lg text-xs font-medium ${
-        muted
-          ? "bg-muted text-muted-foreground"
-          : "bg-primary/10 text-primary"
+        muted ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary"
       }`}
     >
       {name.charAt(0).toUpperCase()}
     </div>
-  );
+  )
 }

@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ConnectionBadge } from "./connection-badge";
-import type { ToolkitDetail } from "../types";
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { ConnectionBadge } from "./connection-badge"
+import type { ToolkitDetail } from "../types"
 
 export function ToolkitHeader({
   toolkit,
@@ -9,10 +9,10 @@ export function ToolkitHeader({
   onConnect,
   onDisconnect,
 }: {
-  toolkit: ToolkitDetail;
-  actionLoading: boolean;
-  onConnect: () => void;
-  onDisconnect: () => void;
+  toolkit: ToolkitDetail
+  actionLoading: boolean
+  onConnect: () => void
+  onDisconnect: () => void
 }) {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -34,7 +34,7 @@ export function ToolkitHeader({
             {toolkit.name}
           </h1>
           {toolkit.description && (
-            <p className="text-sm text-muted-foreground max-w-md">
+            <p className="max-w-md text-sm text-muted-foreground">
               {toolkit.description}
             </p>
           )}
@@ -66,5 +66,5 @@ export function ToolkitHeader({
         )}
       </div>
     </div>
-  );
+  )
 }

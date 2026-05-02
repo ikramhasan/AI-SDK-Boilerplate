@@ -5,6 +5,15 @@ const nextConfig = {
     "@mermaid-js/mermaid-cli",
     "canvas",
   ],
+  async redirects() {
+    return [
+      {
+        source: "/integrations/:path*",
+        destination: "/settings/integrations/:path*",
+        permanent: false,
+      },
+    ]
+  },
 }
 
 export default nextConfig

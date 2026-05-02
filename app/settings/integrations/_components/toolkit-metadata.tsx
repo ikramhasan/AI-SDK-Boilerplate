@@ -1,5 +1,5 @@
-import { ExternalLink, Wrench, Zap, Shield } from "lucide-react";
-import type { ToolkitDetail } from "../types";
+import { ExternalLink, Wrench, Zap, Shield } from "lucide-react"
+import type { ToolkitDetail } from "../types"
 
 export function ToolkitMetadata({ toolkit }: { toolkit: ToolkitDetail }) {
   return (
@@ -36,12 +36,12 @@ export function ToolkitMetadata({ toolkit }: { toolkit: ToolkitDetail }) {
       )}
       {toolkit.baseUrl && (
         <div className="col-span-full flex items-center gap-2 rounded-lg border p-3 text-sm">
-          <span className="text-muted-foreground text-xs">API:</span>
-          <span className="truncate text-xs font-mono">{toolkit.baseUrl}</span>
+          <span className="text-xs text-muted-foreground">API:</span>
+          <span className="truncate font-mono text-xs">{toolkit.baseUrl}</span>
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function MetadataCard({
@@ -49,9 +49,9 @@ function MetadataCard({
   label,
   value,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
+  icon: React.ReactNode
+  label: string
+  value: string
 }) {
   return (
     <div className="flex items-center gap-3 rounded-lg border p-3">
@@ -61,5 +61,5 @@ function MetadataCard({
         <p className="text-sm font-medium">{value}</p>
       </div>
     </div>
-  );
+  )
 }

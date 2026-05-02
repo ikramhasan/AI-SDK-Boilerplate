@@ -1,4 +1,4 @@
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge"
 
 export function ConnectionBadge({ isConnected }: { isConnected: boolean }) {
   return (
@@ -17,5 +17,5 @@ export function ConnectionBadge({ isConnected }: { isConnected: boolean }) {
       />
       {isConnected ? "Connected" : "Not connected"}
     </Badge>
-  );
+  )
 }

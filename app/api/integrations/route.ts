@@ -1,22 +1,22 @@
-import { Composio } from "@composio/core";
-import { api } from "@/convex/_generated/api";
-import { fetchAuthQuery } from "@/lib/auth-server";
+import { Composio } from "@composio/core"
+import { api } from "@/convex/_generated/api"
+import { fetchAuthQuery } from "@/lib/auth-server"
 
-const composio = new Composio();
+const composio = new Composio()
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 function serializeToolkit(t: {
-  slug: string;
-  name: string;
-  logo?: string;
-  isNoAuth?: boolean;
+  slug: string
+  name: string
+  logo?: string
+  isNoAuth?: boolean
   connection?: {
-    isActive?: boolean;
+    isActive?: boolean
     connectedAccount?: {
-      id?: string;
-    };
-  };
+      id?: string
+    }
+  }
 }) {
   return {
     slug: t.slug,
@@ -24,26 +24,27 @@ function serializeToolkit(t: {
     logo: t.logo,
     isConnected: t.connection?.isActive ?? false,
     connectedAccountId: t.connection?.connectedAccount?.id,
-  };
+  }
 }
 
 // List all toolkits with cursor pagination
 export async function GET(req: Request) {
-  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {})
   if (!user) {
-    return Response.json({ error: "Not authenticated" }, { status: 401 });
+    return Response.json({ error: "Not authenticated" }, { status: 401 })
   }
 
-  const url = new URL(req.url);
-  const nextCursor = url.searchParams.get("nextCursor") || undefined;
-  const search = url.searchParams.get("search") || undefined;
+  const url = new URL(req.url)
+  const nextCursor = url.searchParams.get("nextCursor") || undefined
+  const search = url.searchParams.get("search") || undefined
 
   const session = await composio.create(user._id, {
     manageConnections: false,
-  });
+  })
 
-  const connectedItems: Awaited<ReturnType<typeof session.toolkits>>["items"] = [];
-  let connectedCursor: string | undefined;
+  const connectedItems: Awaited<ReturnType<typeof session.toolkits>>["items"] =
+    []
+  let connectedCursor: string | undefined
 
   do {
     const connectedPage = await session.toolkits({
@@ -51,49 +52,47 @@ export async function GET(req: Request) {
       isConnected: true,
       ...(connectedCursor ? { nextCursor: connectedCursor } : {}),
       ...(search ? { search } : {}),
-    });
+    })
 
-    connectedItems.push(...connectedPage.items);
-    connectedCursor = connectedPage.nextCursor ?? undefined;
-  } while (connectedCursor);
+    connectedItems.push(...connectedPage.items)
+    connectedCursor = connectedPage.nextCursor ?? undefined
+  } while (connectedCursor)
 
   const connectedToolkits = connectedItems
     .filter((t) => !t.isNoAuth)
-    .map(serializeToolkit);
+    .map(serializeToolkit)
 
   const result = await session.toolkits({
     limit: 20,
     isConnected: false,
     ...(nextCursor ? { nextCursor } : {}),
     ...(search ? { search } : {}),
-  });
+  })
 
   return Response.json({
     connectedToolkits,
-    toolkits: result.items
-      .filter((t) => !t.isNoAuth)
-      .map(serializeToolkit),
+    toolkits: result.items.filter((t) => !t.isNoAuth).map(serializeToolkit),
     nextCursor: result.nextCursor ?? null,
     totalPages: result.totalPages ?? null,
-  });
+  })
 }
 
 // Start an OAuth flow for a given toolkit
 export async function POST(req: Request) {
-  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {});
+  const user = await fetchAuthQuery(api.adminUsers.getCurrentUser, {})
   if (!user) {
-    return Response.json({ error: "Not authenticated" }, { status: 401 });
+    return Response.json({ error: "Not authenticated" }, { status: 401 })
   }
 
-  const { toolkit }: { toolkit: string } = await req.json();
-  const origin = new URL(req.url).origin;
+  const { toolkit }: { toolkit: string } = await req.json()
+  const origin = new URL(req.url).origin
 
   const session = await composio.create(user._id, {
     manageConnections: false,
-  });
+  })
   const connectionRequest = await session.authorize(toolkit, {
-    callbackUrl: `${origin}/integrations`,
-  });
+    callbackUrl: `${origin}/settings/integrations`,
+  })
 
-  return Response.json({ redirectUrl: connectionRequest.redirectUrl });
+  return Response.json({ redirectUrl: connectionRequest.redirectUrl })
 }

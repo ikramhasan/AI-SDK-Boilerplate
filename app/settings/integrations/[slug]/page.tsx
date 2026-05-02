@@ -1,47 +1,47 @@
-"use client";
+"use client"
 
-import { useParams, useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import { AppSidebar } from "@/components/app-sidebar";
+import { useParams, useRouter, useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { AppSidebar } from "@/components/app-sidebar"
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+} from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
+import { ArrowLeft, ChevronRight } from "lucide-react"
 import {
   useToolkitDetail,
   useConnectToolkit,
   useDisconnectToolkit,
-} from "@/lib/integrations/hooks";
-import { ToolkitHeader } from "../_components/toolkit-header";
-import { ToolkitMetadata } from "../_components/toolkit-metadata";
-import { ToolsList } from "../_components/tools-list";
+} from "@/lib/integrations/hooks"
+import { ToolkitHeader } from "../_components/toolkit-header"
+import { ToolkitMetadata } from "../_components/toolkit-metadata"
+import { ToolsList } from "../_components/tools-list"
 
 export default function IntegrationDetailPage() {
-  const params = useParams<{ slug: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const slug = params.slug;
-  const nameHint = searchParams.get("name");
+  const params = useParams<{ slug: string }>()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const slug = params.slug
+  const nameHint = searchParams.get("name")
 
-  const { data, isLoading, error } = useToolkitDetail(slug);
-  const connectMutation = useConnectToolkit();
-  const disconnectMutation = useDisconnectToolkit();
+  const { data, isLoading, error } = useToolkitDetail(slug)
+  const connectMutation = useConnectToolkit()
+  const disconnectMutation = useDisconnectToolkit()
 
-  const toolkit = data?.toolkit ?? null;
-  const tools = data?.tools ?? [];
+  const toolkit = data?.toolkit ?? null
+  const tools = data?.tools ?? []
 
   const actionLoading =
-    connectMutation.isPending || disconnectMutation.isPending;
+    connectMutation.isPending || disconnectMutation.isPending
 
-  const connect = () => connectMutation.mutate(slug);
+  const connect = () => connectMutation.mutate(slug)
   const disconnect = () => {
-    if (!toolkit?.connectedAccountId) return;
-    disconnectMutation.mutate(toolkit.connectedAccountId);
-  };
+    if (!toolkit?.connectedAccountId) return
+    disconnectMutation.mutate(toolkit.connectedAccountId)
+  }
 
   return (
     <SidebarProvider>
@@ -51,13 +51,13 @@ export default function IntegrationDetailPage() {
           <SidebarTrigger />
           <nav className="ml-2 flex items-center gap-1 text-sm text-muted-foreground">
             <Link
-              href="/integrations"
-              className="hover:text-foreground transition-colors"
+              href="/settings/integrations"
+              className="transition-colors hover:text-foreground"
             >
               Integrations
             </Link>
             <ChevronRight className="size-3.5" />
-            <span className="text-foreground font-medium">
+            <span className="font-medium text-foreground">
               {toolkit?.name ?? nameHint ?? slug}
             </span>
           </nav>
@@ -95,5 +95,5 @@ export default function IntegrationDetailPage() {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  );
+  )
 }

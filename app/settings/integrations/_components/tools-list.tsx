@@ -1,26 +1,26 @@
-"use client";
+"use client"
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Wrench, Tag, ChevronDown } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import type { ToolkitTool, ToolParameterProperty } from "../types";
+import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Wrench, Tag, ChevronDown } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import type { ToolkitTool, ToolParameterProperty } from "../types"
 
 export function ToolsList({ tools }: { tools: ToolkitTool[] }) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState("")
 
   const filtered = search
     ? tools.filter((t) => {
-        const q = search.toLowerCase();
+        const q = search.toLowerCase()
         return (
           t.name.toLowerCase().includes(q) ||
           t.slug.toLowerCase().includes(q) ||
           t.description?.toLowerCase().includes(q) ||
           t.tags.some((tag) => tag.toLowerCase().includes(q))
-        );
+        )
       })
-    : tools;
+    : tools
 
   return (
     <section className="space-y-3">
@@ -37,11 +37,11 @@ export function ToolsList({ tools }: { tools: ToolkitTool[] }) {
       )}
 
       {tools.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
+        <p className="py-4 text-center text-sm text-muted-foreground">
           No tools found for this integration.
         </p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-4 text-center">
+        <p className="py-4 text-center text-sm text-muted-foreground">
           No tools match &ldquo;{search}&rdquo;
         </p>
       ) : (
@@ -52,24 +52,24 @@ export function ToolsList({ tools }: { tools: ToolkitTool[] }) {
         </div>
       )}
     </section>
-  );
+  )
 }
 
 function ToolCard({ tool }: { tool: ToolkitTool }) {
-  const [expanded, setExpanded] = useState(false);
-  const [animating, setAnimating] = useState(false);
+  const [expanded, setExpanded] = useState(false)
+  const [animating, setAnimating] = useState(false)
 
   const inputProps = tool.inputParameters?.properties
     ? Object.entries(tool.inputParameters.properties)
-    : [];
-  const requiredInputs = new Set(tool.inputParameters?.required ?? []);
+    : []
+  const requiredInputs = new Set(tool.inputParameters?.required ?? [])
 
   const outputProps = tool.outputParameters?.properties
     ? Object.entries(tool.outputParameters.properties)
-    : [];
+    : []
 
-  const hasDetails = inputProps.length > 0 || outputProps.length > 0;
-  const showTopOnly = expanded || animating;
+  const hasDetails = inputProps.length > 0 || outputProps.length > 0
+  const showTopOnly = expanded || animating
 
   return (
     <div className="rounded-lg border">
@@ -79,16 +79,16 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
           showTopOnly ? "rounded-t-lg" : "rounded-lg"
         }`}
         onClick={() => {
-          if (!hasDetails) return;
-          if (!expanded) setAnimating(true);
-          setExpanded(!expanded);
+          if (!hasDetails) return
+          if (!expanded) setAnimating(true)
+          setExpanded(!expanded)
         }}
         disabled={!hasDetails}
       >
-        <div className="flex-1 min-w-0 space-y-1">
+        <div className="min-w-0 flex-1 space-y-1">
           <div className="flex items-center gap-2">
-            <Wrench className="size-3.5 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium truncate">{tool.name}</span>
+            <Wrench className="size-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate text-sm font-medium">{tool.name}</span>
             {tool.isDeprecated && (
               <Badge variant="destructive" className="text-xs">
                 Deprecated
@@ -96,18 +96,18 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
             )}
           </div>
           {tool.description && (
-            <p className="text-xs text-muted-foreground pl-5.5 line-clamp-2">
+            <p className="line-clamp-2 pl-5.5 text-xs text-muted-foreground">
               {tool.description}
             </p>
           )}
           {tool.tags.length > 0 && (
-            <div className="flex items-center gap-1 pl-5.5 flex-wrap">
-              <Tag className="size-3 text-muted-foreground shrink-0" />
+            <div className="flex flex-wrap items-center gap-1 pl-5.5">
+              <Tag className="size-3 shrink-0 text-muted-foreground" />
               {tool.tags.slice(0, 5).map((tag) => (
                 <Badge
                   key={tag}
                   variant="outline"
-                  className="text-[10px] px-1.5 py-0"
+                  className="px-1.5 py-0 text-[10px]"
                 >
                   {tag}
                 </Badge>
@@ -122,7 +122,7 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
         </div>
         {hasDetails && (
           <ChevronDown
-            className={`size-4 text-muted-foreground shrink-0 ml-2 transition-transform ${
+            className={`ml-2 size-4 shrink-0 text-muted-foreground transition-transform ${
               expanded ? "rotate-180" : ""
             }`}
           />
@@ -141,7 +141,7 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
             transition={{ duration: 0.2, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <div className="border-t px-3 pb-3 pt-2 space-y-3">
+            <div className="space-y-3 border-t px-3 pt-2 pb-3">
               {inputProps.length > 0 && (
                 <ParameterTable
                   title="Input Parameters"
@@ -166,7 +166,7 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
                       <Badge
                         key={scope}
                         variant="outline"
-                        className="text-[10px] font-mono"
+                        className="font-mono text-[10px]"
                       >
                         {scope}
                       </Badge>
@@ -179,7 +179,7 @@ function ToolCard({ tool }: { tool: ToolkitTool }) {
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }
 
 function ParameterTable({
@@ -187,9 +187,9 @@ function ParameterTable({
   properties,
   requiredFields,
 }: {
-  title: string;
-  properties: [string, ToolParameterProperty][];
-  requiredFields: Set<string>;
+  title: string
+  properties: [string, ToolParameterProperty][]
+  requiredFields: Set<string>
 }) {
   return (
     <div className="space-y-1.5">
@@ -200,9 +200,7 @@ function ParameterTable({
             <tr className="border-b bg-muted/30">
               <th className="px-2 py-1.5 text-left font-medium">Name</th>
               <th className="px-2 py-1.5 text-left font-medium">Type</th>
-              <th className="px-2 py-1.5 text-left font-medium">
-                Description
-              </th>
+              <th className="px-2 py-1.5 text-left font-medium">Description</th>
             </tr>
           </thead>
           <tbody>
@@ -211,10 +209,10 @@ function ParameterTable({
                 <td className="px-2 py-1.5 font-mono whitespace-nowrap">
                   {name}
                   {requiredFields.has(name) && (
-                    <span className="text-red-500 ml-0.5">*</span>
+                    <span className="ml-0.5 text-red-500">*</span>
                   )}
                 </td>
-                <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">
+                <td className="px-2 py-1.5 whitespace-nowrap text-muted-foreground">
                   {prop.type ?? "—"}
                 </td>
                 <td className="px-2 py-1.5 text-muted-foreground">
@@ -226,5 +224,5 @@ function ParameterTable({
         </table>
       </div>
     </div>
-  );
+  )
 }
