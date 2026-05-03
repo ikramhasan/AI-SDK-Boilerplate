@@ -1,5 +1,6 @@
 import { DefaultChatTransport, type UIMessage } from "ai"
 import { serializeMessagesForStorage } from "@/lib/chat-message-storage"
+import { isRecord } from "@/lib/utils"
 
 export type StoredChatMessage = {
   _id: string
@@ -24,10 +25,6 @@ export const hasChatSubmission = (text: string, files: ChatSubmissionFile[]) =>
 
 export const toStoredMessages = (messages: UIMessage[]) =>
   serializeMessagesForStorage(messages)
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
 
 export const toUIMessages = (messages: StoredChatMessage[]): UIMessage[] =>
   messages.map((message) => ({

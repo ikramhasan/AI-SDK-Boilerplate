@@ -10,7 +10,7 @@ export type UsageRecord = {
   userEmail: string
   source: "chat" | "title" | "tool_call"
   chatId: string | undefined
-  model: string
+  model: string | undefined
   toolName: string | undefined
   cacheReadTokens: number
   cacheWriteTokens: number

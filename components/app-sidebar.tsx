@@ -53,7 +53,7 @@ import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import { useQuery, useMutation } from "convex/react"
-import { useSession } from "@better-auth-ui/react"
+import { authClient } from "@/lib/auth-client"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { getSiteName } from "@/lib/site-data"
@@ -66,7 +66,7 @@ import { UserButton } from "@/components/user/user-button"
 import { CreditUsageBanner } from "@/components/credit-usage-banner"
 
 export function AppSidebar() {
-  const { data: session, isPending: isLoading } = useSession()
+  const { data: session, isPending: isLoading } = authClient.useSession()
   const isAuthenticated = Boolean(session)
   const router = useRouter()
   const isMac = useIsMac()

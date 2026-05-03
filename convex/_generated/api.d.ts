@@ -13,6 +13,7 @@ import type * as aiConfig from "../aiConfig.js";
 import type * as auth from "../auth.js";
 import type * as billing from "../billing.js";
 import type * as chats from "../chats.js";
+import type * as crons from "../crons.js";
 import type * as documentAssets from "../documentAssets.js";
 import type * as feedback from "../feedback.js";
 import type * as http from "../http.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   billing: typeof billing;
   chats: typeof chats;
+  crons: typeof crons;
   documentAssets: typeof documentAssets;
   feedback: typeof feedback;
   http: typeof http;

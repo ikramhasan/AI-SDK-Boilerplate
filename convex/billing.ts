@@ -5,7 +5,6 @@ import { customersList } from "@polar-sh/sdk/funcs/customersList.js"
 import { eventsIngest } from "@polar-sh/sdk/funcs/eventsIngest.js"
 import { v } from "convex/values"
 import {
-  action,
   internalAction,
   internalMutation,
   mutation,
@@ -19,7 +18,6 @@ import {
   ACTIVE_SUBSCRIPTION_STATUSES,
   BILLING_CREDIT_VALUE_USD,
   BILLING_TRIAL,
-  calculateBillingMargin,
   CREDIT_LEDGER_EXTERNAL_ID_PREFIX,
   CREDIT_LEDGER_SOURCE,
   creditsForVendorCost,
@@ -65,7 +63,6 @@ async function getOrCreateBillingState(ctx: MutationCtx, userId: string) {
     credits: BILLING_TRIAL.credits,
     vendorCostUsd: 0,
     revenueUsd: BILLING_TRIAL.credits * BILLING_CREDIT_VALUE_USD,
-    margin: 1,
     externalId: `${CREDIT_LEDGER_EXTERNAL_ID_PREFIX.trial}:${userId}`,
     metadata: { expiresAt: trialExpiresAt, days: BILLING_TRIAL.days },
   })
@@ -114,7 +111,7 @@ export const {
   generateCustomerPortalUrl,
 } = polar.api()
 
-export const syncProducts = action({
+export const syncProducts = internalAction({
   args: {},
   handler: async (ctx) => {
     await polar.syncProducts(ctx)
@@ -165,7 +162,7 @@ export const listLedger = query({
       .query("creditLedger")
       .withIndex("by_userId", (q) => q.eq("userId", billingUserId))
       .order("desc")
-      .take(args.limit ?? 100)
+      .take(Math.min(args.limit ?? 100, 500))
   },
 })
 
@@ -236,10 +233,12 @@ export const recordAiUsage = mutation({
     }
 
     const state = await getOrCreateBillingState(ctx, billingUserId)
-    const credits = creditsForVendorCost(args.cost)
+    const cost = Math.max(0, args.cost)
+    const credits = creditsForVendorCost(cost)
 
     const usageId = await ctx.db.insert("usage", {
       ...args,
+      cost,
       userId: billingUserId,
     })
 
@@ -257,12 +256,8 @@ export const recordAiUsage = mutation({
           ? CREDIT_LEDGER_SOURCE.aiChat
           : CREDIT_LEDGER_SOURCE.aiTitle,
       credits: -credits,
-      vendorCostUsd: args.cost,
+      vendorCostUsd: cost,
       revenueUsd: credits * BILLING_CREDIT_VALUE_USD,
-      margin: calculateBillingMargin(
-        credits * BILLING_CREDIT_VALUE_USD,
-        args.cost
-      ),
       chatId: args.chatId,
       model: args.model,
       externalId: `${CREDIT_LEDGER_EXTERNAL_ID_PREFIX.usage}:${usageId}`,
@@ -280,7 +275,7 @@ export const recordAiUsage = mutation({
       userId: billingUserId,
       eventName: "ai_usage",
       externalId: `${CREDIT_LEDGER_EXTERNAL_ID_PREFIX.usage}:${usageId}`,
-      costAmountCents: args.cost * 100,
+      costAmountCents: cost * 100,
       llm: {
         vendor: args.providerId ?? args.model.split("/")[0] ?? "unknown",
         model: args.model,
@@ -314,10 +309,13 @@ export const recordToolCall = mutation({
       }
     }
 
+    const credits = Math.max(0, args.credits)
+    const vendorCostUsd = Math.max(0, args.vendorCostUsd)
+
     const state = await getOrCreateBillingState(ctx, billingUserId)
-    if (args.credits > 0) {
+    if (credits > 0) {
       await ctx.db.patch(state._id, {
-        creditBalance: Math.max(0, state.creditBalance - args.credits),
+        creditBalance: Math.max(0, state.creditBalance - credits),
         updatedAt: Date.now(),
       })
     }
@@ -345,37 +343,33 @@ export const recordToolCall = mutation({
       inputTokens: 0,
       outputTokens: 0,
       totalTokens: 0,
-      cost: args.vendorCostUsd,
+      cost: vendorCostUsd,
     })
 
     const ledgerId = await ctx.db.insert("creditLedger", {
       userId: billingUserId,
       source: CREDIT_LEDGER_SOURCE.toolCall,
-      credits: -args.credits,
-      vendorCostUsd: args.vendorCostUsd,
-      revenueUsd: args.credits * BILLING_CREDIT_VALUE_USD,
-      margin: calculateBillingMargin(
-        args.credits * BILLING_CREDIT_VALUE_USD,
-        args.vendorCostUsd
-      ),
+      credits: -credits,
+      vendorCostUsd,
+      revenueUsd: credits * BILLING_CREDIT_VALUE_USD,
       chatId: args.chatId,
       toolName: args.toolName,
       ...(ledgerExternalId ? { externalId: ledgerExternalId } : {}),
       metadata: {
         ...metadata,
-        uncoveredCredits: Math.max(0, args.credits - state.creditBalance),
+        uncoveredCredits: Math.max(0, credits - state.creditBalance),
       },
     })
 
-    if (args.credits > 0) {
+    if (credits > 0) {
       await ctx.scheduler.runAfter(0, internal.billing.ingestPolarUsageEvent, {
         userId: billingUserId,
         eventName: "tool_call",
         externalId: ledgerExternalId ?? `tool:${ledgerId}`,
-        costAmountCents: args.vendorCostUsd * 100,
+        costAmountCents: vendorCostUsd * 100,
         extraMetadata: {
           tool_name: args.toolName,
-          credits: args.credits,
+          credits,
         },
       })
     }
@@ -438,7 +432,6 @@ export const grantSubscriptionCredits = internalMutation({
       credits: plan.credits,
       vendorCostUsd: 0,
       revenueUsd: plan.priceUsd,
-      margin: 1,
       externalId: `${CREDIT_LEDGER_EXTERNAL_ID_PREFIX.subscription}:${grantKey}`,
       metadata: {
         planKey: plan.key,
@@ -626,8 +619,60 @@ export const recordManualAdjustment = mutation({
       credits: args.credits,
       vendorCostUsd: 0,
       revenueUsd: args.credits * BILLING_CREDIT_VALUE_USD,
-      margin: 1,
       metadata: { reason: args.reason },
     })
+  },
+})
+
+/**
+ * Reconciliation: verify that SUM(creditLedger.credits) matches
+ * userBillingState.creditBalance for each user. Logs mismatches
+ * so they can be investigated. Designed to run on a cron schedule.
+ *
+ * Processes one user per invocation to stay within Convex's single-paginate
+ * limit. Schedules itself to continue with the next user until done.
+ */
+export const reconcileCreditBalances = internalMutation({
+  args: {
+    cursor: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Paginate one user at a time
+    const page = await ctx.db
+      .query("userBillingState")
+      .paginate({ numItems: 1, cursor: args.cursor ?? null })
+
+    const state = page.page[0]
+    if (!state) {
+      console.log("[billing-reconciliation] Finished — no more users to check")
+      return
+    }
+
+    // Sum all ledger entries for this user using async iteration (no paginate)
+    let ledgerSum = 0
+    for await (const entry of ctx.db
+      .query("creditLedger")
+      .withIndex("by_userId", (q) => q.eq("userId", state.userId))) {
+      ledgerSum += entry.credits
+    }
+
+    const drift = state.creditBalance - ledgerSum
+    if (Math.abs(drift) > 0.001) {
+      console.error(
+        `[billing-reconciliation] MISMATCH userId=${state.userId} ` +
+          `stateBalance=${state.creditBalance} ledgerSum=${ledgerSum} drift=${drift}`
+      )
+    }
+
+    // Schedule next user if there are more
+    if (!page.isDone) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.billing.reconcileCreditBalances,
+        { cursor: page.continueCursor }
+      )
+    } else {
+      console.log("[billing-reconciliation] All users reconciled")
+    }
   },
 })

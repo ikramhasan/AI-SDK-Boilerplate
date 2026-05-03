@@ -127,7 +127,6 @@ export default defineSchema({
     credits: v.number(),
     vendorCostUsd: v.number(),
     revenueUsd: v.number(),
-    margin: v.union(v.number(), v.null()),
     chatId: v.optional(v.id("chats")),
     messageId: v.optional(v.id("messages")),
     toolName: v.optional(v.string()),

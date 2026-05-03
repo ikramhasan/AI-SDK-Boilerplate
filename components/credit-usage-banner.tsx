@@ -8,6 +8,7 @@ import { useMotionValue, useSpring, motion } from "motion/react"
 import { Zap } from "lucide-react"
 import { api } from "@/convex/_generated/api"
 import { cn } from "@/lib/utils"
+import { BILLING_TRIAL } from "@/lib/billing"
 
 function AnimatedNumber({ value, className }: { value: number; className?: string }) {
   const motionValue = useMotionValue(value)
@@ -45,7 +46,7 @@ export function CreditUsageBanner() {
   const totalCredits = activePlan
     ? activePlan.credits
     : trialExpiresAt
-      ? 100 // BILLING_TRIAL.credits
+      ? BILLING_TRIAL.credits
       : 0
 
   const isTrialOrFree = !subscription

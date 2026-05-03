@@ -21,12 +21,9 @@ import {
   getToolCallCharge,
   USAGE_SOURCE,
 } from "@/lib/billing"
+import { isRecord } from "@/lib/utils"
 
 export const maxDuration = 30
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
-}
 
 async function recordToolLedgerEntries({
   steps,

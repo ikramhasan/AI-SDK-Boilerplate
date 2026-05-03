@@ -64,7 +64,7 @@ export default function UsagePage() {
 
   useEffect(() => { fetchRecords() }, [fetchRecords])
 
-  const models = useMemo(() => [...new Set(records.map((r) => r.model))].sort(), [records])
+  const models = useMemo(() => [...new Set(records.map((r) => r.model).filter((m): m is string => !!m))].sort(), [records])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
@@ -84,7 +84,7 @@ export default function UsagePage() {
         (r) =>
           r.userName.toLowerCase().includes(q) ||
           r.userEmail.toLowerCase().includes(q) ||
-          r.model.toLowerCase().includes(q) ||
+          (r.model?.toLowerCase().includes(q) ?? false) ||
           (r.toolName?.toLowerCase().includes(q) ?? false)
       )
     }
@@ -101,8 +101,8 @@ export default function UsagePage() {
     }
 
     return [...result].sort((a, b) => {
-      const aVal = a[sortKey]
-      const bVal = b[sortKey]
+      const aVal = a[sortKey] ?? ""
+      const bVal = b[sortKey] ?? ""
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
       return sortDir === "asc" ? cmp : -cmp
     })
