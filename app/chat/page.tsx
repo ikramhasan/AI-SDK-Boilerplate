@@ -9,6 +9,7 @@ import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
+  extractFriendlyError,
   hasChatSubmission,
   toStoredMessages,
   type ChatSubmissionFile,
@@ -40,7 +41,7 @@ function NewChatView() {
   const [chatId, setChatId] = useState<string | null>(null)
   const titleGeneratedRef = useRef(false)
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, setMessages, status, stop } = useChat({
     transport: chatTransport,
     onData: (dataPart) => {
       if (dataPart.type !== "data-title") return
@@ -55,6 +56,29 @@ function NewChatView() {
           detail: { chatId: data.chatId, title: data.title },
         })
       )
+    },
+    onError: async (error) => {
+      const id = chatIdRef.current
+      if (!id) return
+
+      const friendlyMessage = extractFriendlyError(error)
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant" as const,
+            parts: [{ type: "text" as const, text: friendlyMessage }],
+            metadata: { error: true },
+          },
+        ]
+        // Persist with the error message included
+        saveMessages({
+          chatId: id as Id<"chats">,
+          messages: toStoredMessages(updated),
+        }).catch((e) => console.error("Failed to save error message:", e))
+        return updated
+      })
     },
     onFinish: async ({ messages: allMessages }) => {
       const id = chatIdRef.current

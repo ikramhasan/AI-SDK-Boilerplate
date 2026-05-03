@@ -84,7 +84,8 @@ export default function UsagePage() {
         (r) =>
           r.userName.toLowerCase().includes(q) ||
           r.userEmail.toLowerCase().includes(q) ||
-          r.model.toLowerCase().includes(q)
+          r.model.toLowerCase().includes(q) ||
+          (r.toolName?.toLowerCase().includes(q) ?? false)
       )
     }
     if (sourceFilter !== "all") {
@@ -232,6 +233,7 @@ export default function UsagePage() {
             <SelectItem value="all">All sources</SelectItem>
             <SelectItem value="chat">Chat</SelectItem>
             <SelectItem value="title">Title</SelectItem>
+            <SelectItem value="tool_call">Tool Call</SelectItem>
           </SelectContent>
         </Select>
         <Select value={modelFilter} onValueChange={(v) => { setModelFilter(v); setPage(1) }}>
@@ -291,7 +293,7 @@ export default function UsagePage() {
                 className="cursor-pointer select-none"
                 onClick={() => toggleSort("model")}
               >
-                Model{sortIndicator("model")}
+                Model / Tool{sortIndicator("model")}
               </TableHead>
               <TableHead
                 className="cursor-pointer select-none text-right"
@@ -343,11 +345,13 @@ export default function UsagePage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={r.source === "chat" ? "default" : "outline"}>
+                    <Badge variant={r.source === "chat" ? "default" : r.source === "tool_call" ? "secondary" : "outline"}>
                       {r.source}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{r.model}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {r.source === "tool_call" ? r.toolName ?? "—" : r.model}
+                  </TableCell>
                   <TableCell className="text-right font-mono text-xs">
                     {formatTokens(r.inputTokens)}
                   </TableCell>

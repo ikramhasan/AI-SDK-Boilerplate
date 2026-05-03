@@ -1,8 +1,10 @@
 "use client"
 
 import { useSession } from "@better-auth-ui/react"
+import { useQuery } from "convex/react"
 import type { User } from "better-auth"
 
+import { api } from "@/convex/_generated/api"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { UserAvatar } from "./user-avatar"
@@ -15,7 +17,7 @@ export type UserViewProps = {
 }
 
 /**
- * Render a compact user item with an avatar, a primary label (display username, name, or email), and an optional secondary email line.
+ * Render a compact user item with an avatar, a primary label (display username, name, or email), and the user's current plan.
  *
  * @param isPending - If true and no `user` prop is provided, renders a loading skeleton instead of user details
  * @param className - Additional CSS classes applied to the outer container
@@ -28,6 +30,19 @@ export function UserView({ className, isPending, user }: UserViewProps) {
   })
 
   const resolvedUser = user ?? session?.user
+
+  const billingStatus = useQuery(
+    api.billing.getStatus,
+    session && !user ? {} : "skip"
+  )
+
+  const planLabel = billingStatus?.subscription
+    ? billingStatus.plans.find(
+        (p) => p.productId === billingStatus.subscription?.productId
+      )?.name ?? "Subscribed"
+    : billingStatus?.trialExpiresAt
+      ? "Trial"
+      : "Free"
 
   if ((isPending || sessionPending) && !user) {
     return (
@@ -55,7 +70,7 @@ export function UserView({ className, isPending, user }: UserViewProps) {
 
         {(resolvedUser?.displayUsername || resolvedUser?.name) && (
           <span className="text-muted-foreground truncate text-xs">
-            {resolvedUser?.email}
+            {billingStatus !== undefined ? `${planLabel} plan` : resolvedUser?.email}
           </span>
         )}
       </div>

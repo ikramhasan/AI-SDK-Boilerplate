@@ -4,6 +4,7 @@ import { useAuth, useSession } from "@better-auth-ui/react"
 import { useQuery } from "convex/react"
 import {
   ChevronsUpDown,
+  CreditCard,
   LogIn,
   LogOut,
   Monitor,
@@ -152,6 +153,13 @@ export function UserButton({
               <Link href="/settings/integrations">
                 <Plug className="text-muted-foreground" />
                 Integrations
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link href="/settings/billing">
+                <CreditCard className="text-muted-foreground" />
+                Billing
               </Link>
             </DropdownMenuItem>
 

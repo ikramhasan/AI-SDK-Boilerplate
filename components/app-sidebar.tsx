@@ -43,7 +43,11 @@ import {
   Share08Icon,
   FileExportIcon,
 } from "@hugeicons/core-free-icons"
-import { FileTextIcon, FileIcon, FileDownIcon } from "lucide-react"
+import {
+  FileTextIcon,
+  FileIcon,
+  FileDownIcon,
+} from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter, useParams } from "next/navigation"
@@ -59,6 +63,7 @@ import { useIsMac } from "@/hooks/use-is-mac"
 import { ShareChatDialog } from "./share-chat-dialog"
 import { exportAsMarkdown, exportAsDocx, exportAsPdf } from "@/lib/export-chat"
 import { UserButton } from "@/components/user/user-button"
+import { CreditUsageBanner } from "@/components/credit-usage-banner"
 
 export function AppSidebar() {
   const { data: session, isPending: isLoading } = useSession()
@@ -316,7 +321,10 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-3">
         {isLoading ? null : isAuthenticated ? (
-          <UserButton align="start" sideOffset={8} className="w-full" />
+          <div className="flex flex-col gap-2">
+            <CreditUsageBanner />
+            <UserButton align="start" sideOffset={8} className="w-full" />
+          </div>
         ) : (
           <Button variant="outline" className="w-full" asChild>
             <Link href="/auth/sign-in">Sign in</Link>

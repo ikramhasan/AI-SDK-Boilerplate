@@ -1,5 +1,6 @@
-import { defineSchema, defineTable } from "convex/server";
-import { v } from "convex/values";
+import { defineSchema, defineTable } from "convex/server"
+import { v } from "convex/values"
+import { CREDIT_LEDGER_SOURCE, USAGE_SOURCE } from "../lib/billing"
 
 export default defineSchema({
   chats: defineTable({
@@ -17,6 +18,7 @@ export default defineSchema({
     chatId: v.id("chats"),
     role: v.string(),
     parts: v.array(v.any()),
+    metadata: v.optional(v.any()),
   }).index("by_chatId", ["chatId"]),
 
   messageToolRuns: defineTable({
@@ -91,11 +93,14 @@ export default defineSchema({
   usage: defineTable({
     userId: v.string(),
     source: v.union(
-      v.literal("chat"),
-      v.literal("title"),
+      v.literal(USAGE_SOURCE.chat),
+      v.literal(USAGE_SOURCE.title),
+      v.literal(USAGE_SOURCE.toolCall)
     ),
     chatId: v.optional(v.id("chats")),
-    model: v.string(),
+    model: v.optional(v.string()),
+    providerId: v.optional(v.string()),
+    toolName: v.optional(v.string()),
     cacheReadTokens: v.number(),
     cacheWriteTokens: v.number(),
     inputTokens: v.number(),
@@ -107,8 +112,50 @@ export default defineSchema({
     .index("by_source", ["source"])
     .index("by_userId_and_source", ["userId", "source"]),
 
+  creditLedger: defineTable({
+    userId: v.string(),
+    source: v.union(
+      v.literal(CREDIT_LEDGER_SOURCE.aiChat),
+      v.literal(CREDIT_LEDGER_SOURCE.aiTitle),
+      v.literal(CREDIT_LEDGER_SOURCE.toolCall),
+      v.literal(CREDIT_LEDGER_SOURCE.creditPurchase),
+      v.literal(CREDIT_LEDGER_SOURCE.subscriptionGrant),
+      v.literal(CREDIT_LEDGER_SOURCE.trialGrant),
+      v.literal(CREDIT_LEDGER_SOURCE.manualAdjustment),
+      v.literal(CREDIT_LEDGER_SOURCE.refund)
+    ),
+    credits: v.number(),
+    vendorCostUsd: v.number(),
+    revenueUsd: v.number(),
+    margin: v.union(v.number(), v.null()),
+    chatId: v.optional(v.id("chats")),
+    messageId: v.optional(v.id("messages")),
+    toolName: v.optional(v.string()),
+    model: v.optional(v.string()),
+    externalId: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_source", ["source"])
+    .index("by_externalId", ["externalId"])
+    .index("by_userId_and_source", ["userId", "source"]),
+
+  userBillingState: defineTable({
+    userId: v.string(),
+    creditBalance: v.number(),
+    trialGrantedAt: v.optional(v.number()),
+    trialExpiresAt: v.optional(v.number()),
+    lastSubscriptionGrantKey: v.optional(v.string()),
+    activeSubscriptionId: v.optional(v.string()),
+    activeSubscriptionProductId: v.optional(v.string()),
+    activeSubscriptionStatus: v.optional(v.string()),
+    activeSubscriptionCurrentPeriodEnd: v.optional(v.string()),
+    polarCustomerId: v.optional(v.string()),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
   userAvatars: defineTable({
     userId: v.string(),
     storageId: v.id("_storage"),
   }).index("by_userId", ["userId"]),
-});
+})

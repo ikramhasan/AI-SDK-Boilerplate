@@ -8,9 +8,10 @@ export type UsageRecord = {
   userId: string
   userName: string
   userEmail: string
-  source: "chat" | "title"
+  source: "chat" | "title" | "tool_call"
   chatId: string | undefined
   model: string
+  toolName: string | undefined
   cacheReadTokens: number
   cacheWriteTokens: number
   inputTokens: number
@@ -36,6 +37,7 @@ export async function getUsageRecords(): Promise<UsageRecord[]> {
     source: r.source,
     chatId: r.chatId,
     model: r.model,
+    toolName: r.toolName,
     cacheReadTokens: r.cacheReadTokens,
     cacheWriteTokens: r.cacheWriteTokens,
     inputTokens: r.inputTokens,

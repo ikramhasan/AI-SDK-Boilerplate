@@ -16,8 +16,67 @@ import { createModel } from "@/lib/agents/provider"
 import { loadKnowledge, buildSystemMessage } from "@/lib/agents/knowledge"
 import { resolveTools } from "@/lib/agents/tools"
 import { requireCurrentUserConvexAuth } from "@/lib/convex/server"
+import {
+  BILLING_GENERATION_GUARD,
+  getToolCallCharge,
+  USAGE_SOURCE,
+} from "@/lib/billing"
 
 export const maxDuration = 30
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+async function recordToolLedgerEntries({
+  steps,
+  activeChatId,
+  convexToken,
+}: {
+  steps: Array<{ toolCalls?: unknown[]; toolResults?: unknown[] }>
+  activeChatId?: string
+  convexToken: string
+}) {
+  const resultsById = new Map<string, unknown>()
+  for (const step of steps) {
+    for (const result of step.toolResults ?? []) {
+      if (!isRecord(result) || typeof result.toolCallId !== "string") continue
+      resultsById.set(result.toolCallId, result)
+    }
+  }
+
+  for (const step of steps) {
+    for (const call of step.toolCalls ?? []) {
+      if (
+        !isRecord(call) ||
+        typeof call.toolName !== "string" ||
+        typeof call.toolCallId !== "string"
+      ) {
+        continue
+      }
+
+      const result = resultsById.get(call.toolCallId)
+      const output = isRecord(result) ? result.output : undefined
+      const pricing = getToolCallCharge(call.toolName, call.input, output)
+
+      await fetchMutation(
+        api.billing.recordToolCall,
+        {
+          chatId: activeChatId ? (activeChatId as Id<"chats">) : undefined,
+          toolCallId: call.toolCallId,
+          toolName: call.toolName,
+          vendorCostUsd: pricing.vendorCostUsd,
+          credits: pricing.credits,
+          metadata: {
+            ...pricing.metadata,
+            input: call.input,
+          },
+        },
+        { token: convexToken }
+      )
+    }
+  }
+}
 
 export async function POST(req: Request) {
   let userId: string
@@ -43,6 +102,40 @@ export async function POST(req: Request) {
     titleUserMessage?: string
   } = await req.json()
   const activeChatId = chatId ?? id
+
+  try {
+    const status = await fetchMutation(
+      api.billing.ensureReadyForPaidAction,
+      {},
+      { token: convexToken }
+    )
+    if (
+      status.creditBalance <
+      BILLING_GENERATION_GUARD.minimumCreditsBeforeGeneration
+    ) {
+      return Response.json(
+        {
+          error: "You're out of credits. Please upgrade your plan to continue chatting.",
+        },
+        { status: 402 }
+      )
+    }
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Billing check failed"
+
+    // Extract user-friendly message from Convex errors
+    const friendlyMessage = message.includes("out of credits")
+      ? "You're out of credits. Please upgrade your plan to continue chatting."
+      : message.includes("trial credits have expired")
+        ? "Your trial has expired. Choose a subscription to continue."
+        : "Something went wrong. Please try again later."
+
+    return Response.json(
+      { error: friendlyMessage },
+      { status: 402 }
+    )
+  }
 
   // Title generation can run alongside the heavier chat setup.
   const config = await loadConfig()
@@ -96,7 +189,7 @@ export async function POST(req: Request) {
         }
       : {}),
     stopWhen: stepCountIs(10),
-    onFinish: async ({ usage: tokenUsage }) => {
+    onFinish: async ({ totalUsage: tokenUsage, steps }) => {
       for (const client of mcpClients) {
         await client.close().catch(() => {})
       }
@@ -108,17 +201,24 @@ export async function POST(req: Request) {
           config.modelId
         )
         await fetchMutation(
-          api.usage.record,
+          api.billing.recordAiUsage,
           {
-            source: "chat" as const,
+            source: USAGE_SOURCE.chat,
             chatId: activeChatId ? (activeChatId as Id<"chats">) : undefined,
             model: config.modelId,
+            providerId: config.providerId,
             ...usage,
           },
           { token: convexToken }
         )
       } catch (error) {
         console.error("Failed to record usage:", error)
+      }
+
+      try {
+        await recordToolLedgerEntries({ steps, activeChatId, convexToken })
+      } catch (error) {
+        console.error("Failed to record tool usage:", error)
       }
     },
   })
@@ -165,11 +265,12 @@ export async function POST(req: Request) {
             config.modelId
           )
           await fetchMutation(
-            api.usage.record,
+            api.billing.recordAiUsage,
             {
-              source: "title" as const,
+              source: USAGE_SOURCE.title,
               chatId: activeChatId as Id<"chats">,
               model: config.modelId,
+              providerId: config.providerId,
               ...usage,
             },
             { token: convexToken }

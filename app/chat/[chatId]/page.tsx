@@ -12,6 +12,7 @@ import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell, ChatShellLoading } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
+  extractFriendlyError,
   hasChatSubmission,
   toStoredMessages,
   toUIMessages,
@@ -75,10 +76,29 @@ function ChatView({
 }) {
   const saveMessages = useMutation(api.messages.save)
 
-  const { messages, sendMessage, status, stop, regenerate } = useChat({
+  const { messages, sendMessage, setMessages, status, stop, regenerate } = useChat({
     id: chatId,
     transport: chatTransport,
     messages: initialMessages,
+    onError: async (error) => {
+      const friendlyMessage = extractFriendlyError(error)
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant" as const,
+            parts: [{ type: "text" as const, text: friendlyMessage }],
+            metadata: { error: true },
+          },
+        ]
+        saveMessages({
+          chatId: chatId as Id<"chats">,
+          messages: toStoredMessages(updated),
+        }).catch((e) => console.error("Failed to save error message:", e))
+        return updated
+      })
+    },
     onFinish: async ({ messages: allMessages }) => {
       try {
         await saveMessages({

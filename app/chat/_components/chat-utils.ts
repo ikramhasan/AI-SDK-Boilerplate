@@ -5,6 +5,7 @@ export type StoredChatMessage = {
   _id: string
   role: string
   parts: unknown[]
+  metadata?: unknown
 }
 
 export type ChatSubmissionFile = {
@@ -24,9 +25,27 @@ export const hasChatSubmission = (text: string, files: ChatSubmissionFile[]) =>
 export const toStoredMessages = (messages: UIMessage[]) =>
   serializeMessagesForStorage(messages)
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
 export const toUIMessages = (messages: StoredChatMessage[]): UIMessage[] =>
   messages.map((message) => ({
     id: message._id,
     role: message.role as UIMessage["role"],
     parts: message.parts as UIMessage["parts"],
+    ...(isRecord(message.metadata) ? { metadata: message.metadata } : {}),
   }))
+
+export function extractFriendlyError(error: Error): string {
+  const msg = error.message || ""
+
+  if (msg.includes("out of credits"))
+    return "You're out of credits. Please upgrade your plan to continue chatting."
+  if (msg.includes("trial credits have expired"))
+    return "Your trial has expired. Choose a subscription to continue."
+  if (msg.includes("at least") && msg.includes("credits"))
+    return "You're out of credits. Please upgrade your plan to continue chatting."
+
+  return "Something went wrong. Please try again."
+}
