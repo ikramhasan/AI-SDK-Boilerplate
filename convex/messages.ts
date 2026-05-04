@@ -102,6 +102,7 @@ function hydrateMessagesWithToolRuns(
     chatId: string;
     role: string;
     parts: unknown[];
+    metadata?: unknown;
   }[],
   toolRunsByMessageId: Map<string, {
     _id: string;
@@ -133,6 +134,7 @@ export const save = mutation({
         role: v.string(),
         parts: v.array(persistedMessagePartValidator),
         toolRuns: v.array(persistedToolRunValidator),
+        metadata: v.optional(v.any()),
       })
     ),
   },
@@ -168,6 +170,7 @@ export const save = mutation({
         await ctx.db.patch(existing[i]._id, {
           role: incoming.role,
           parts: incoming.parts,
+          ...(incoming.metadata ? { metadata: incoming.metadata } : {}),
         });
 
         for (const toolRun of toolRunsByMessageId.get(existing[i]._id) ?? []) {
@@ -192,6 +195,7 @@ export const save = mutation({
         chatId: args.chatId,
         role: message.role,
         parts: message.parts,
+        ...(message.metadata ? { metadata: message.metadata } : {}),
       });
 
       for (const toolRun of message.toolRuns) {

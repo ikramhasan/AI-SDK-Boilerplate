@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
-import { useAuth } from "@clerk/nextjs";
+import { useSession } from "@better-auth-ui/react";
 import { useTheme } from "next-themes";
 import { api } from "@/convex/_generated/api";
 import {
@@ -33,12 +33,14 @@ export function CommandMenu() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const isMac = useIsMac();
-  const { isSignedIn } = useAuth();
+  const { data: session } = useSession();
+  const isAuthenticated = Boolean(session);
 
-  const recentChats = useQuery(api.chats.list, isSignedIn ? {} : "skip") ?? [];
+  const recentChats =
+    useQuery(api.chats.list, isAuthenticated ? {} : "skip") ?? [];
   const searchResults = useQuery(
     api.chats.search,
-    isSignedIn && debouncedSearch.length > 0
+    isAuthenticated && debouncedSearch.length > 0
       ? { query: debouncedSearch }
       : "skip"
   );

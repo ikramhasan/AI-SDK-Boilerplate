@@ -44,17 +44,22 @@ const integrationRows = [
 
 export function Integrations() {
   return (
-    <section id="integrations" className="border-t border-border/40 bg-muted/20 py-24">
+    <section
+      id="integrations"
+      className="border-t border-border/40 bg-muted/20 py-24"
+    >
       <div className="mx-auto max-w-6xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <Badge variant="outline" className="mb-4">Integrations</Badge>
+          <Badge variant="outline" className="mb-4">
+            Integrations
+          </Badge>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            <span className="text-primary">1000+</span> integrations,{" "}
-            zero config
+            <span className="text-primary">1000+</span> integrations, zero
+            config
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            HeyClaw connects to every tool in your stack.
-            Just authenticate and go.
+            HeyClaw connects to every tool in your stack. Just authenticate and
+            go.
           </p>
         </div>
 
@@ -70,7 +75,7 @@ export function Integrations() {
                 className="size-5 object-contain"
                 loading="lazy"
               />
-              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+              <span className="text-sm font-medium text-muted-foreground transition-colors group-hover:text-foreground">
                 {integration.name}
               </span>
             </div>
@@ -79,12 +84,21 @@ export function Integrations() {
 
         <div className="mt-10 text-center">
           <p className="mb-4 text-sm text-muted-foreground">
-            And thousands more — Airtable, Pipedrive, Twilio, Google Docs, Figma, Canva...
+            And thousands more — Airtable, Pipedrive, Twilio, Google Docs,
+            Figma, Canva...
           </p>
           <Button variant="outline" asChild>
-            <Link href="/integrations" className="gap-2">
+            <Link href="/settings/integrations" className="gap-2">
               Browse all integrations
-              <svg viewBox="0 0 24 24" fill="none" className="size-4" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="size-4"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M5 12h14" />
                 <path d="m12 5 7 7-7 7" />
               </svg>

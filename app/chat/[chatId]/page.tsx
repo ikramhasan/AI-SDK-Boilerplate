@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react"
 import type { UIMessage } from "ai"
 import { useMutation, useQuery } from "convex/react"
-import { useAuth } from "@clerk/nextjs"
+import { useSession } from "@better-auth-ui/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
@@ -12,6 +12,7 @@ import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell, ChatShellLoading } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
+  extractFriendlyError,
   hasChatSubmission,
   toStoredMessages,
   toUIMessages,
@@ -21,24 +22,25 @@ import {
 export default function ChatPage() {
   const params = useParams()
   const chatId = params.chatId as string
-  const { isLoaded, isSignedIn } = useAuth()
+  const { data: session, isPending: isLoading } = useSession()
+  const isAuthenticated = Boolean(session)
   const router = useRouter()
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (!isLoading && !isAuthenticated) {
       router.replace("/chat")
     }
-  }, [isLoaded, isSignedIn, router])
+  }, [isLoading, isAuthenticated, router])
 
   const chat = useQuery(
     api.chats.get,
-    isSignedIn ? { chatId: chatId as Id<"chats"> } : "skip"
+    isAuthenticated ? { chatId: chatId as Id<"chats"> } : "skip"
   )
   const storedMessages = useQuery(
     api.messages.list,
-    isSignedIn ? { chatId: chatId as Id<"chats"> } : "skip"
+    isAuthenticated ? { chatId: chatId as Id<"chats"> } : "skip"
   )
-  const shouldRedirect = isLoaded && !isSignedIn
+  const shouldRedirect = !isLoading && !isAuthenticated
 
   useEffect(() => {
     if (chat === null) {
@@ -47,7 +49,7 @@ export default function ChatPage() {
   }, [chat, router])
 
   if (
-    !isLoaded ||
+    isLoading ||
     shouldRedirect ||
     chat === undefined ||
     storedMessages === undefined ||
@@ -74,10 +76,29 @@ function ChatView({
 }) {
   const saveMessages = useMutation(api.messages.save)
 
-  const { messages, sendMessage, status, stop, regenerate } = useChat({
+  const { messages, sendMessage, setMessages, status, stop, regenerate } = useChat({
     id: chatId,
     transport: chatTransport,
     messages: initialMessages,
+    onError: async (error) => {
+      const friendlyMessage = extractFriendlyError(error)
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant" as const,
+            parts: [{ type: "text" as const, text: friendlyMessage }],
+            metadata: { error: true },
+          },
+        ]
+        saveMessages({
+          chatId: chatId as Id<"chats">,
+          messages: toStoredMessages(updated),
+        }).catch((e) => console.error("Failed to save error message:", e))
+        return updated
+      })
+    },
     onFinish: async ({ messages: allMessages }) => {
       try {
         await saveMessages({

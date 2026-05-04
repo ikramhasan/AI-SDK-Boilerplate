@@ -27,6 +27,8 @@ import {
   getUsers, banUser, unbanUser, makeAdmin, removeAdmin, deleteUser,
   type SerializedUser,
 } from "./_actions"
+import { authClient } from "@/lib/auth-client"
+import { toast } from "sonner"
 
 const PAGE_SIZE = 20
 
@@ -94,7 +96,8 @@ export default function UsersPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const paginatedUsers = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const handleAction = (userId: string, action: string) => {
+  const handleAction = (e: React.MouseEvent, userId: string, action: string) => {
+    e.stopPropagation()
     startTransition(async () => {
       switch (action) {
         case "ban": await banUser(userId); break
@@ -105,6 +108,23 @@ export default function UsersPage() {
       }
       await fetchUsers()
     })
+  }
+
+  const handleImpersonate = async (userId: string) => {
+    try {
+      const { error } = await authClient.admin.impersonateUser({
+        userId,
+      })
+      if (error) {
+        toast.error(error.message || "Failed to impersonate user")
+        return
+      }
+      // Full page navigation is needed because the session token has changed
+      // and the server-side token needs to be re-fetched from scratch
+      window.location.href = "/chat"
+    } catch {
+      toast.error("Failed to impersonate user")
+    }
   }
 
   return (
@@ -217,27 +237,33 @@ export default function UsersPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {user.role === "user" ? (
-                              <DropdownMenuItem onClick={() => handleAction(user.id, "make-admin")}>
+                              <DropdownMenuItem onClick={(e) => handleAction(e, user.id, "make-admin")}>
                                 Make admin
                               </DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem onClick={() => handleAction(user.id, "remove-admin")}>
+                              <DropdownMenuItem onClick={(e) => handleAction(e, user.id, "remove-admin")}>
                                 Remove admin
                               </DropdownMenuItem>
                             )}
                             {user.banned ? (
-                              <DropdownMenuItem onClick={() => handleAction(user.id, "unban")}>
+                              <DropdownMenuItem onClick={(e) => handleAction(e, user.id, "unban")}>
                                 Unban user
                               </DropdownMenuItem>
                             ) : (
-                              <DropdownMenuItem onClick={() => handleAction(user.id, "ban")}>
+                              <DropdownMenuItem onClick={(e) => handleAction(e, user.id, "ban")}>
                                 Ban user
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            {user.role !== "admin" && (
+                              <DropdownMenuItem onClick={() => handleImpersonate(user.id)}>
+                                Impersonate
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive"
-                              onClick={() => handleAction(user.id, "delete")}
+                              onClick={(e) => handleAction(e, user.id, "delete")}
                             >
                               Delete user
                             </DropdownMenuItem>

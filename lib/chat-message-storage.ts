@@ -22,6 +22,7 @@ export type PersistedChatMessage = {
   role: string
   parts: PersistedMessagePart[]
   toolRuns: PersistedToolRun[]
+  metadata?: Record<string, unknown>
 }
 
 type UnknownRecord = Record<string, unknown>
@@ -535,10 +536,13 @@ export function serializeMessageForStorage(message: UIMessage): PersistedChatMes
     }
   })
 
+  const metadata = (message as UIMessage & { metadata?: Record<string, unknown> }).metadata
+
   return {
     role: message.role,
     parts,
     toolRuns,
+    ...(metadata ? { metadata } : {}),
   }
 }
 

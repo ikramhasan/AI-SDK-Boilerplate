@@ -418,19 +418,28 @@ export function ChatMessages({
 
                     // Text content
                     if (part.type === "text" && part.text.length > 0) {
+                      const isErrorMessage =
+                        message.role === "assistant" &&
+                        (message as UIMessage & { metadata?: Record<string, unknown> }).metadata?.error === true;
                       otherElements.push({
                         order: i,
                         element: (
                           <MessageContent key={key}>
-                            <MessageResponse
-                              isAnimating={
-                                status === "streaming" &&
-                                message.role === "assistant" &&
-                                i === message.parts.length - 1
-                              }
-                            >
-                              {part.text}
-                            </MessageResponse>
+                            {isErrorMessage ? (
+                              <p className="text-sm text-destructive">
+                                {part.text}
+                              </p>
+                            ) : (
+                              <MessageResponse
+                                isAnimating={
+                                  status === "streaming" &&
+                                  message.role === "assistant" &&
+                                  i === message.parts.length - 1
+                                }
+                              >
+                                {part.text}
+                              </MessageResponse>
+                            )}
                           </MessageContent>
                         ),
                       });

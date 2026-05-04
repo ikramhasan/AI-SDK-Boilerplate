@@ -1,9 +1,7 @@
 "use server"
 
-import { fetchQuery } from "convex/nextjs"
 import { api } from "@/convex/_generated/api"
-import { clerkClient } from "@clerk/nextjs/server"
-import { getCurrentUserConvexToken } from "@/lib/convex/server"
+import { fetchAuthQuery } from "@/lib/auth-server"
 
 export type AdminFeedback = {
   id: string
@@ -18,36 +16,20 @@ export type AdminFeedback = {
 }
 
 export async function getFeedbacks(): Promise<AdminFeedback[]> {
-  const client = await clerkClient()
-  const token = await getCurrentUserConvexToken()
-
-  const feedbacks = await fetchQuery(api.feedback.listAll, {}, { token })
+  const feedbacks = await fetchAuthQuery(api.feedback.listAll, {})
 
   const userIdSet = new Set(feedbacks.map((f) => f.userId))
-  const userMap = new Map<string, { name: string; email: string }>()
-
-  for (const tokenId of userIdSet) {
-    const clerkUserId = tokenId.split("|").pop() ?? ""
-    try {
-      const user = await client.users.getUser(clerkUserId)
-      userMap.set(tokenId, {
-        name:
-          [user.firstName, user.lastName].filter(Boolean).join(" ") ||
-          "Unknown",
-        email: user.emailAddresses[0]?.emailAddress ?? "",
-      })
-    } catch {
-      userMap.set(tokenId, { name: "Deleted User", email: "" })
-    }
-  }
+  const userMap = await fetchAuthQuery(api.adminUsers.listByTokenIdentifiers, {
+    tokenIdentifiers: [...userIdSet],
+  })
 
   return feedbacks.map((fb) => ({
     id: fb._id,
     chatId: fb.chatId,
     chatTitle: fb.chatTitle,
     messageId: fb.messageId,
-    userName: userMap.get(fb.userId)?.name ?? "Unknown",
-    userEmail: userMap.get(fb.userId)?.email ?? "",
+    userName: userMap[fb.userId]?.name ?? "Unknown",
+    userEmail: userMap[fb.userId]?.email ?? "",
     rating: fb.rating,
     comment: fb.comment,
     createdAt: fb._creationTime,

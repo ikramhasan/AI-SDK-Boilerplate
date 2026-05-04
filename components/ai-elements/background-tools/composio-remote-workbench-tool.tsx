@@ -3,6 +3,18 @@
 import { TerminalSquareIcon } from "lucide-react";
 import type { ToolComponentProps, ToolConfig, ToolUIPart } from "./types";
 import { humanize, isPartDone } from "./types";
+import {
+  Sandbox,
+  SandboxHeader,
+  SandboxContent,
+  SandboxTabs,
+  SandboxTabsBar,
+  SandboxTabsList,
+  SandboxTabsTrigger,
+  SandboxTabContent,
+} from "@/components/ai-elements/sandbox";
+import { CodeBlockContent } from "@/components/ai-elements/code-block";
+import type { BundledLanguage } from "shiki";
 
 interface RemoteWorkbenchInput {
   code_to_execute?: string;
@@ -94,6 +106,27 @@ function getRemoteWorkbenchOutput(part: ToolUIPart): RemoteWorkbenchOutput | nul
   return (part.output as RemoteWorkbenchOutput | null) ?? null;
 }
 
+function buildSandboxTitle(input: RemoteWorkbenchInput): string {
+  const step = summarizeStep(input);
+  if (step) return step;
+  if (input.thought) return truncate(input.thought, 60);
+  return "Execution";
+}
+
+function detectOutputLanguage(text: string): BundledLanguage {
+  const trimmed = text.trimStart();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      JSON.parse(trimmed);
+      return "json";
+    } catch {
+      // not valid JSON, fall through
+    }
+  }
+  // shiki's internal highlighter falls back gracefully for unknown langs
+  return "log" as BundledLanguage;
+}
+
 export const composioRemoteWorkbenchConfig: ToolConfig = {
   label: "Remote Workbench",
   activeLabel: "Running Remote Workbench",
@@ -112,58 +145,64 @@ export function ComposioRemoteWorkbenchContent({ part }: ToolComponentProps) {
   const input = getRemoteWorkbenchInput(part);
   const output = getRemoteWorkbenchOutput(part);
   const outputPreview = getOutputPreview(output);
+  const done = isPartDone(part);
 
-  if (
-    !input.current_step &&
-    !input.thought &&
-    !input.code_to_execute &&
-    !outputPreview &&
-    output?.successful === undefined
-  ) {
+  const hasCode = !!input.code_to_execute;
+  const hasOutput = !!outputPreview || output?.successful !== undefined;
+
+  if (!hasCode && !hasOutput) {
     return null;
   }
 
+  const defaultTab = hasOutput ? "output" : "input";
+
   return (
-    <div className="space-y-1.5 text-xs text-muted-foreground">
-      {(input.current_step || output?.successful !== undefined) && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          {input.current_step && (
-            <span>
-              Step: <span className="text-foreground">{summarizeStep(input)}</span>
-            </span>
-          )}
-          {output?.successful !== undefined && (
-            <span>
-              Status:{" "}
-              <span className={output.successful ? "text-green-600 dark:text-green-400" : "text-destructive"}>
-                {output.successful ? "successful" : "failed"}
-              </span>
-            </span>
-          )}
-        </div>
-      )}
+    <Sandbox>
+      <SandboxHeader title={buildSandboxTitle(input)} state={part.state} />
+      <SandboxContent>
+        <SandboxTabs defaultValue={defaultTab}>
+          <SandboxTabsBar>
+            <SandboxTabsList>
+              {hasCode && (
+                <SandboxTabsTrigger value="input">Input</SandboxTabsTrigger>
+              )}
+              <SandboxTabsTrigger value="output" disabled={!done}>
+                Output
+              </SandboxTabsTrigger>
+            </SandboxTabsList>
+          </SandboxTabsBar>
 
-      {input.code_to_execute && (
-        <div className="space-y-1">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-            Code
-          </div>
-          <pre className="scrollbar-none max-h-56 overflow-auto rounded-md bg-muted/40 p-2 text-[12px] leading-relaxed text-muted-foreground">
-            {input.code_to_execute}
-          </pre>
-        </div>
-      )}
+          {hasCode && (
+            <SandboxTabContent value="input">
+              <div className="max-h-72 overflow-auto text-[12px]">
+                <CodeBlockContent
+                  code={input.code_to_execute!}
+                  language="python"
+                />
+              </div>
+            </SandboxTabContent>
+          )}
 
-      {outputPreview && (
-        <div className="space-y-1">
-          <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
-            Output
-          </div>
-          <pre className="scrollbar-none max-h-40 overflow-auto rounded-md bg-muted/40 p-2 text-[12px] leading-relaxed text-muted-foreground">
-            {outputPreview}
-          </pre>
-        </div>
-      )}
-    </div>
+          <SandboxTabContent value="output">
+            {outputPreview ? (
+              <div className="max-h-72 overflow-auto text-[12px]">
+                <CodeBlockContent
+                  code={outputPreview}
+                  language={detectOutputLanguage(outputPreview)}
+                />
+              </div>
+            ) : done ? (
+              <p className="p-3 text-xs text-muted-foreground">
+                No output returned.
+              </p>
+            ) : (
+              <p className="p-3 text-xs text-muted-foreground">
+                Waiting for execution to complete…
+              </p>
+            )}
+          </SandboxTabContent>
+        </SandboxTabs>
+      </SandboxContent>
+    </Sandbox>
   );
 }

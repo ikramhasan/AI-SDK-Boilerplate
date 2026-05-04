@@ -9,6 +9,7 @@ import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell } from "@/app/chat/_components/chat-shell"
 import {
   chatTransport,
+  extractFriendlyError,
   hasChatSubmission,
   toStoredMessages,
   type ChatSubmissionFile,
@@ -40,8 +41,45 @@ function NewChatView() {
   const [chatId, setChatId] = useState<string | null>(null)
   const titleGeneratedRef = useRef(false)
 
-  const { messages, sendMessage, status, stop } = useChat({
+  const { messages, sendMessage, setMessages, status, stop } = useChat({
     transport: chatTransport,
+    onData: (dataPart) => {
+      if (dataPart.type !== "data-title") return
+
+      const data = dataPart.data as { chatId?: unknown; title?: unknown }
+      if (typeof data.chatId !== "string" || typeof data.title !== "string") {
+        return
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("chat-title-available", {
+          detail: { chatId: data.chatId, title: data.title },
+        })
+      )
+    },
+    onError: async (error) => {
+      const id = chatIdRef.current
+      if (!id) return
+
+      const friendlyMessage = extractFriendlyError(error)
+      setMessages((prev) => {
+        const updated = [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            role: "assistant" as const,
+            parts: [{ type: "text" as const, text: friendlyMessage }],
+            metadata: { error: true },
+          },
+        ]
+        // Persist with the error message included
+        saveMessages({
+          chatId: id as Id<"chats">,
+          messages: toStoredMessages(updated),
+        }).catch((e) => console.error("Failed to save error message:", e))
+        return updated
+      })
+    },
     onFinish: async ({ messages: allMessages }) => {
       const id = chatIdRef.current
       if (!id) return
@@ -73,23 +111,27 @@ function NewChatView() {
         }
       }
 
-      // Fire-and-forget title generation on first message
-      if (chatIdRef.current && !titleGeneratedRef.current && text.trim()) {
+      const shouldGenerateTitle =
+        Boolean(chatIdRef.current) &&
+        !titleGeneratedRef.current &&
+        Boolean(text.trim())
+      if (shouldGenerateTitle) {
         titleGeneratedRef.current = true
-        fetch("/api/generate-title", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chatId: chatIdRef.current,
-            userMessage: text.trim(),
-          }),
-        }).catch(console.error)
       }
 
-      sendMessage({
-        text,
-        ...(files.length > 0 ? { files } : {}),
-      })
+      sendMessage(
+        {
+          text,
+          ...(files.length > 0 ? { files } : {}),
+        },
+        {
+          body: {
+            chatId: chatIdRef.current,
+            generateTitle: shouldGenerateTitle,
+            titleUserMessage: shouldGenerateTitle ? text.trim() : undefined,
+          },
+        }
+      )
     },
     [createChat, sendMessage]
   )

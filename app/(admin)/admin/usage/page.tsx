@@ -64,7 +64,7 @@ export default function UsagePage() {
 
   useEffect(() => { fetchRecords() }, [fetchRecords])
 
-  const models = useMemo(() => [...new Set(records.map((r) => r.model))].sort(), [records])
+  const models = useMemo(() => [...new Set(records.map((r) => r.model).filter((m): m is string => !!m))].sort(), [records])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
@@ -84,7 +84,8 @@ export default function UsagePage() {
         (r) =>
           r.userName.toLowerCase().includes(q) ||
           r.userEmail.toLowerCase().includes(q) ||
-          r.model.toLowerCase().includes(q)
+          (r.model?.toLowerCase().includes(q) ?? false) ||
+          (r.toolName?.toLowerCase().includes(q) ?? false)
       )
     }
     if (sourceFilter !== "all") {
@@ -100,8 +101,8 @@ export default function UsagePage() {
     }
 
     return [...result].sort((a, b) => {
-      const aVal = a[sortKey]
-      const bVal = b[sortKey]
+      const aVal = a[sortKey] ?? ""
+      const bVal = b[sortKey] ?? ""
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0
       return sortDir === "asc" ? cmp : -cmp
     })
@@ -115,11 +116,17 @@ export default function UsagePage() {
     const totalOutput = filtered.reduce((s, r) => s + r.outputTokens, 0)
 
     // Top users by cost
-    const userCostMap = new Map<string, { name: string; email: string; cost: number }>()
+    const userCostMap = new Map<string, { userId: string; name: string; email: string; cost: number }>()
     for (const r of filtered) {
       const existing = userCostMap.get(r.userId)
       if (existing) existing.cost += r.cost
-      else userCostMap.set(r.userId, { name: r.userName, email: r.userEmail, cost: r.cost })
+      else
+        userCostMap.set(r.userId, {
+          userId: r.userId,
+          name: r.userName,
+          email: r.userEmail,
+          cost: r.cost,
+        })
     }
     const topUsers = [...userCostMap.values()]
       .sort((a, b) => b.cost - a.cost)
@@ -197,7 +204,7 @@ export default function UsagePage() {
           <CardContent>
             <div className="space-y-2">
               {stats.topUsers.map((u) => (
-                <div key={u.email} className="flex items-center justify-between text-sm">
+                <div key={u.userId} className="flex items-center justify-between text-sm">
                   <div>
                     <span className="font-medium">{u.name}</span>
                     <span className="ml-2 text-muted-foreground">{u.email}</span>
@@ -226,6 +233,7 @@ export default function UsagePage() {
             <SelectItem value="all">All sources</SelectItem>
             <SelectItem value="chat">Chat</SelectItem>
             <SelectItem value="title">Title</SelectItem>
+            <SelectItem value="tool_call">Tool Call</SelectItem>
           </SelectContent>
         </Select>
         <Select value={modelFilter} onValueChange={(v) => { setModelFilter(v); setPage(1) }}>
@@ -285,7 +293,7 @@ export default function UsagePage() {
                 className="cursor-pointer select-none"
                 onClick={() => toggleSort("model")}
               >
-                Model{sortIndicator("model")}
+                Model / Tool{sortIndicator("model")}
               </TableHead>
               <TableHead
                 className="cursor-pointer select-none text-right"
@@ -337,11 +345,13 @@ export default function UsagePage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={r.source === "chat" ? "default" : "outline"}>
+                    <Badge variant={r.source === "chat" ? "default" : r.source === "tool_call" ? "secondary" : "outline"}>
                       {r.source}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs">{r.model}</TableCell>
+                  <TableCell className="font-mono text-xs">
+                    {r.source === "tool_call" ? r.toolName ?? "—" : r.model}
+                  </TableCell>
                   <TableCell className="text-right font-mono text-xs">
                     {formatTokens(r.inputTokens)}
                   </TableCell>
