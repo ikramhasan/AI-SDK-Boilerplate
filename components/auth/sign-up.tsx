@@ -3,27 +3,33 @@
 import {
   useAuth,
   useIsUsernameAvailable,
-  useSignUpEmail
+  useSignUpEmail,
 } from "@better-auth-ui/react"
 import { useDebouncer } from "@tanstack/react-pacer"
 import { Check, Eye, EyeOff, X } from "lucide-react"
 import { type SyntheticEvent, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldSeparator
+  FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
-  InputGroupInput
+  InputGroupInput,
 } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
@@ -54,7 +60,7 @@ export type SignUpProps = {
 export function SignUp({
   className,
   socialLayout,
-  socialPosition = "bottom"
+  socialPosition = "bottom",
 }: SignUpProps) {
   const {
     basePaths,
@@ -66,7 +72,7 @@ export function SignUp({
     username: usernameConfig,
     viewPaths,
     navigate,
-    Link
+    Link,
   } = useAuth()
 
   const [password, setPassword] = useState("")
@@ -77,7 +83,7 @@ export function SignUp({
     mutate: isUsernameAvailable,
     data: usernameData,
     error: usernameError,
-    reset: resetUsername
+    reset: resetUsername,
   } = useIsUsernameAvailable()
 
   const usernameDebouncer = useDebouncer(
@@ -114,7 +120,7 @@ export function SignUp({
       } else {
         navigate({ to: redirectTo })
       }
-    }
+    },
   })
 
   const isPending = signUpPending
@@ -153,9 +159,9 @@ export function SignUp({
             username: username.trim(),
             ...(usernameConfig.displayUsername
               ? { displayUsername: username.trim() }
-              : {})
+              : {}),
           }
-        : {})
+        : {}),
     })
   }
 
@@ -163,15 +169,23 @@ export function SignUp({
     emailAndPassword?.enabled && socialProviders && socialProviders.length > 0
 
   return (
-    <Card className={cn("w-full max-w-sm", className)}>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">
+    <Card
+      className={cn(
+        "w-full border-0 bg-card/95 py-7 shadow-[0_24px_90px_-40px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.08)_inset] ring-1 ring-foreground/10 backdrop-blur-xl",
+        className
+      )}
+    >
+      <CardHeader className="gap-2 px-7">
+        <CardTitle className="text-2xl font-semibold tracking-tight text-balance">
           {localization.auth.signUp}
         </CardTitle>
+        <CardDescription className="leading-6 text-pretty">
+          Create your HeyClaw workspace account.
+        </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        <div className="flex flex-col gap-6">
+      <CardContent className="px-7">
+        <div className="flex flex-col gap-5">
           {socialPosition === "top" && (
             <>
               {socialProviders && socialProviders.length > 0 && (
@@ -182,7 +196,7 @@ export function SignUp({
               )}
 
               {showSeparator && (
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card text-xs flex items-center">
+                <FieldSeparator className="flex items-center text-xs *:data-[slot=field-separator-content]:bg-card/95">
                   {localization.auth.or}
                 </FieldSeparator>
               )}
@@ -191,7 +205,7 @@ export function SignUp({
 
           {emailAndPassword?.enabled && (
             <form onSubmit={handleSubmit}>
-              <FieldGroup>
+              <FieldGroup className="gap-4">
                 <Field data-invalid={!!fieldErrors.name}>
                   <Label htmlFor="name">{localization.auth.name}</Label>
 
@@ -206,7 +220,7 @@ export function SignUp({
                     onChange={() => {
                       setFieldErrors((prev) => ({
                         ...prev,
-                        name: undefined
+                        name: undefined,
                       }))
                     }}
                     onInvalid={(e) => {
@@ -214,7 +228,7 @@ export function SignUp({
 
                       setFieldErrors((prev) => ({
                         ...prev,
-                        name: (e.target as HTMLInputElement).validationMessage
+                        name: (e.target as HTMLInputElement).validationMessage,
                       }))
                     }}
                     aria-invalid={!!fieldErrors.name}
@@ -292,7 +306,7 @@ export function SignUp({
                     onChange={() => {
                       setFieldErrors((prev) => ({
                         ...prev,
-                        email: undefined
+                        email: undefined,
                       }))
                     }}
                     onInvalid={(e) => {
@@ -300,7 +314,7 @@ export function SignUp({
 
                       setFieldErrors((prev) => ({
                         ...prev,
-                        email: (e.target as HTMLInputElement).validationMessage
+                        email: (e.target as HTMLInputElement).validationMessage,
                       }))
                     }}
                     aria-invalid={!!fieldErrors.email}
@@ -323,7 +337,7 @@ export function SignUp({
                         setPassword(e.target.value)
                         setFieldErrors((prev) => ({
                           ...prev,
-                          password: undefined
+                          password: undefined,
                         }))
                       }}
                       placeholder={localization.auth.passwordPlaceholder}
@@ -337,7 +351,7 @@ export function SignUp({
                         setFieldErrors((prev) => ({
                           ...prev,
                           password: (e.target as HTMLInputElement)
-                            .validationMessage
+                            .validationMessage,
                         }))
                       }}
                       aria-invalid={!!fieldErrors.password}
@@ -385,7 +399,7 @@ export function SignUp({
 
                           setFieldErrors((prev) => ({
                             ...prev,
-                            confirmPassword: undefined
+                            confirmPassword: undefined,
                           }))
                         }}
                         placeholder={
@@ -401,7 +415,7 @@ export function SignUp({
                           setFieldErrors((prev) => ({
                             ...prev,
                             confirmPassword: (e.target as HTMLInputElement)
-                              .validationMessage
+                              .validationMessage,
                           }))
                         }}
                         aria-invalid={!!fieldErrors.confirmPassword}
@@ -435,7 +449,12 @@ export function SignUp({
                 )}
 
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" disabled={isPending}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="h-11 transition-transform active:scale-[0.96]"
+                    disabled={isPending}
+                  >
                     {isPending && <Spinner />}
 
                     {localization.auth.signUp}
@@ -452,7 +471,7 @@ export function SignUp({
           {socialPosition === "bottom" && (
             <>
               {showSeparator && (
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card text-xs flex items-center">
+                <FieldSeparator className="flex items-center text-xs *:data-[slot=field-separator-content]:bg-card/95">
                   {localization.auth.or}
                 </FieldSeparator>
               )}
@@ -468,12 +487,12 @@ export function SignUp({
         </div>
 
         {emailAndPassword?.enabled && (
-          <div className="flex flex-col gap-3 items-center w-full mt-4">
-            <FieldDescription className="text-center">
+          <div className="mt-5 flex w-full flex-col items-center gap-3 border-t border-border/60 pt-5">
+            <FieldDescription className="text-center leading-6">
               {localization.auth.alreadyHaveAnAccount}{" "}
               <Link
                 href={`${basePaths.auth}/${viewPaths.auth.signIn}`}
-                className="underline underline-offset-4"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
               >
                 {localization.auth.signIn}
               </Link>

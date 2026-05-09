@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { components } from "./_generated/api";
 import { authComponent, createAuth, requireAdmin } from "./auth";
 
 type AuthUser = {
@@ -182,6 +183,45 @@ export const setRole = mutation({
       body: args,
       headers,
     });
+  },
+});
+
+export const makeAdminByEmail = internalMutation({
+  args: { email: v.string() },
+  handler: async (ctx, args) => {
+    const email = args.email.trim().toLowerCase();
+    if (!email) {
+      throw new Error("Email is required");
+    }
+
+    const user = (await ctx.runQuery(components.betterAuth.adapter.findOne, {
+      model: "user",
+      where: [{ field: "email", value: email }],
+    })) as AuthUser | null;
+
+    if (!user) {
+      throw new Error(`No user found for ${email}`);
+    }
+
+    const userId = user.id ?? user._id;
+    if (!userId) {
+      throw new Error(`User ${email} is missing an id`);
+    }
+
+    await ctx.runMutation(components.betterAuth.adapter.updateOne, {
+      input: {
+        model: "user",
+        where: [{ field: "_id", value: userId }],
+        update: { role: "admin" },
+      },
+    });
+
+    return {
+      id: userId,
+      email,
+      role: "admin",
+      changed: user.role !== "admin",
+    };
   },
 });
 

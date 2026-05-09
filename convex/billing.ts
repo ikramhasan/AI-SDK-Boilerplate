@@ -40,6 +40,21 @@ function getPlanByProductId(productId: string) {
   return { key: entry[0] as SubscriptionPlanKey, ...entry[1] }
 }
 
+function getSubscriptionProductId(subscription: unknown) {
+  if (!subscription || typeof subscription !== "object") return null
+  const maybeSubscription = subscription as {
+    productId?: unknown
+    product?: { id?: unknown } | null
+  }
+  if (typeof maybeSubscription.productId === "string") {
+    return maybeSubscription.productId
+  }
+  if (typeof maybeSubscription.product?.id === "string") {
+    return maybeSubscription.product.id
+  }
+  return null
+}
+
 async function getOrCreateBillingState(ctx: MutationCtx, userId: string) {
   const existing = await ctx.db
     .query("userBillingState")
@@ -138,16 +153,26 @@ export const getStatus = query({
       console.error("Failed to fetch subscription (run syncProducts):", error)
     }
 
+    const activeProductId =
+      getSubscriptionProductId(subscription) ??
+      state?.activeSubscriptionProductId ??
+      null
+    const activePlan = activeProductId ? getPlanByProductId(activeProductId) : null
+
     return {
       billingUserId,
       creditBalance: state?.creditBalance ?? 0,
       trialExpiresAt: state?.trialExpiresAt ?? null,
       subscription,
+      activePlan,
       plans: Object.entries(SUBSCRIPTION_PLANS).map(([key, plan]) => ({
         key,
         name: plan.name,
+        tier: plan.tier,
+        interval: plan.interval,
         productId: productIds[key as SubscriptionPlanKey] ?? null,
         priceUsd: plan.priceUsd,
+        monthlyPriceUsd: plan.monthlyPriceUsd,
         credits: plan.credits,
       })),
     }

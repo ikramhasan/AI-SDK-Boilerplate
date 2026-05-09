@@ -22,7 +22,7 @@ export type SocialLayout = "auto" | "horizontal" | "vertical" | "grid"
  */
 export function ProviderButtons({
   isPending,
-  socialLayout = "auto"
+  socialLayout = "auto",
 }: ProviderButtonsProps) {
   const { socialProviders } = useAuth()
 
@@ -59,7 +59,10 @@ export function ProviderButtons({
                 ? "providerName"
                 : "none"
           }
-          className={cn(resolvedSocialLayout === "horizontal" && "flex-1")}
+          className={cn(
+            "h-11 transition-transform active:scale-[0.96]",
+            resolvedSocialLayout === "horizontal" && "flex-1"
+          )}
         />
       ))}
     </div>

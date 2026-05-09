@@ -8,6 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "admin:make": "node scripts/make-admin.mjs",
+    "convex:wipe:dev": "node scripts/wipe-convex-dev-db.mjs",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
     "typecheck": "tsc --noEmit"
   },

@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { CheckoutLink, CustomerPortalLink } from "@convex-dev/polar/react"
 import { useQuery } from "convex/react"
 import { CheckIcon, CreditCardIcon, ExternalLinkIcon } from "lucide-react"
@@ -9,8 +10,14 @@ import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { BILLING_TRIAL, POLAR_METADATA_KEYS } from "@/lib/billing"
+import {
+  BILLING_INTERVAL,
+  BILLING_TRIAL,
+  POLAR_METADATA_KEYS,
+  type BillingInterval,
+} from "@/lib/billing"
 
 function formatDate(value: number | string | null | undefined) {
   if (!value) return "Not available"
@@ -30,6 +37,12 @@ function formatMoney(value: number) {
 
 export default function BillingPage() {
   const status = useQuery(api.billing.getStatus)
+  const [userSelectedInterval, setUserSelectedInterval] =
+    useState<BillingInterval | null>(null)
+  const activePlan = status?.activePlan ?? null
+  const visiblePlans = status?.plans.filter((plan) => plan.name !== "Basic") ?? []
+  const selectedInterval =
+    userSelectedInterval ?? activePlan?.interval ?? BILLING_INTERVAL.yearly
 
   return (
     <SettingsPageShell>
@@ -68,11 +81,6 @@ export default function BillingPage() {
               <Progress
                 value={(() => {
                   if (!status) return 0
-                  const activePlan = status.subscription
-                    ? status.plans.find(
-                        (p) => p.productId === status.subscription?.productId
-                      )
-                    : null
                   const max = activePlan?.credits ?? BILLING_TRIAL.credits
                   return Math.min(100, (status.creditBalance / max) * 100)
                 })()}
@@ -104,87 +112,131 @@ export default function BillingPage() {
         </div>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">Plans</h2>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {status?.plans.map((plan) => {
-              const isActivePlan =
-                status.subscription?.productId === plan.productId
-              const hasSubscription = !!status.subscription
-
-              return (
-                <Card
-                  key={plan.key}
-                  className={cn(
-                    isActivePlan &&
-                      "ring-2 ring-primary"
-                  )}
-                >
-                  <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-base">
-                      <span className="flex items-center gap-2">
-                        {plan.name}
-                        {isActivePlan && (
-                          <Badge variant="secondary" className="text-xs">
-                            <CheckIcon className="mr-1 size-3" />
-                            Current
-                          </Badge>
-                        )}
-                      </span>
-                      <span className="text-sm font-normal text-muted-foreground">
-                        {formatMoney(plan.priceUsd)}/mo
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="text-sm">
-                      <span className="font-medium tabular-nums">
-                        {plan.credits.toLocaleString()}
-                      </span>{" "}
-                      included credits
-                    </div>
-                    {isActivePlan ? (
-                      <CustomerPortalLink
-                        polarApi={api.billing}
-                        className={cn(
-                          buttonVariants({ variant: "outline", className: "w-full" })
-                        )}
-                      >
-                        <ExternalLinkIcon className="mr-1 size-4" />
-                        Manage Subscription
-                      </CustomerPortalLink>
-                    ) : hasSubscription ? (
-                      <CustomerPortalLink
-                        polarApi={api.billing}
-                        className={cn(
-                          buttonVariants({ variant: "secondary", className: "w-full" })
-                        )}
-                      >
-                        <ExternalLinkIcon className="mr-1 size-4" />
-                        Change Plan
-                      </CustomerPortalLink>
-                    ) : plan.productId ? (
-                      <CheckoutLink
-                        polarApi={api.billing}
-                        productIds={[plan.productId]}
-                        metadata={{
-                          [POLAR_METADATA_KEYS.userId]: status.billingUserId,
-                        }}
-                        embed={false}
-                        lazy
-                        className={cn(buttonVariants({ className: "w-full" }))}
-                      >
-                        Choose {plan.name}
-                      </CheckoutLink>
-                    ) : (
-                      <div className="rounded-md border border-dashed px-3 py-2 text-center text-xs text-muted-foreground">
-                        Missing product ID
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )
-            })}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-sm font-medium text-muted-foreground">Plans</h2>
+            <Tabs
+              value={selectedInterval}
+              onValueChange={(value) =>
+                setUserSelectedInterval(value as BillingInterval)
+              }
+            >
+              <TabsList>
+                <TabsTrigger value={BILLING_INTERVAL.monthly}>
+                  Monthly
+                </TabsTrigger>
+                <TabsTrigger value={BILLING_INTERVAL.yearly}>
+                  Yearly
+                  <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                    20% off
+                  </span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
+
+          <Tabs value={selectedInterval} className="gap-0">
+            {[BILLING_INTERVAL.monthly, BILLING_INTERVAL.yearly].map(
+              (interval) => (
+                <TabsContent key={interval} value={interval} className="mt-0">
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {visiblePlans
+                      .filter((plan) => plan.interval === interval)
+                      .map((plan) => {
+                        const isYearly = plan.interval === BILLING_INTERVAL.yearly
+                        const isActivePlan = activePlan?.key === plan.key
+                        const hasSubscription = !!status?.subscription
+
+                        return (
+                          <Card
+                            key={plan.key}
+                            className={cn(isActivePlan && "ring-2 ring-primary")}
+                          >
+                            <CardHeader>
+                              <CardTitle className="flex items-start justify-between gap-3 text-base">
+                                <span className="flex flex-wrap items-center gap-2">
+                                  {plan.name}
+                                  {isActivePlan && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      <CheckIcon className="mr-1 size-3" />
+                                      Current
+                                    </Badge>
+                                  )}
+                                </span>
+                                <span className="text-right text-sm font-normal text-muted-foreground">
+                                  <span className="block">
+                                    {formatMoney(plan.monthlyPriceUsd)}/mo
+                                  </span>
+                                  {isYearly && (
+                                    <span className="block text-xs">
+                                      {formatMoney(plan.priceUsd)}/yr
+                                    </span>
+                                  )}
+                                </span>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <div className="text-sm">
+                                <span className="font-medium tabular-nums">
+                                  {plan.credits.toLocaleString()}
+                                </span>{" "}
+                                credits/{isYearly ? "year" : "month"}
+                              </div>
+                              {isActivePlan ? (
+                                <CustomerPortalLink
+                                  polarApi={api.billing}
+                                  className={cn(
+                                    buttonVariants({
+                                      variant: "outline",
+                                      className: "w-full",
+                                    })
+                                  )}
+                                >
+                                  <ExternalLinkIcon className="mr-1 size-4" />
+                                  Manage Subscription
+                                </CustomerPortalLink>
+                              ) : hasSubscription ? (
+                                <CustomerPortalLink
+                                  polarApi={api.billing}
+                                  className={cn(
+                                    buttonVariants({
+                                      variant: "secondary",
+                                      className: "w-full",
+                                    })
+                                  )}
+                                >
+                                  <ExternalLinkIcon className="mr-1 size-4" />
+                                  Change Plan
+                                </CustomerPortalLink>
+                              ) : plan.productId && status ? (
+                                <CheckoutLink
+                                  polarApi={api.billing}
+                                  productIds={[plan.productId]}
+                                  metadata={{
+                                    [POLAR_METADATA_KEYS.userId]:
+                                      status.billingUserId,
+                                  }}
+                                  embed={false}
+                                  lazy
+                                  className={cn(
+                                    buttonVariants({ className: "w-full" })
+                                  )}
+                                >
+                                  Choose {plan.name}
+                                </CheckoutLink>
+                              ) : (
+                                <div className="rounded-md border border-dashed px-3 py-2 text-center text-xs text-muted-foreground">
+                                  Missing product ID
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                  </div>
+                </TabsContent>
+              )
+            )}
+          </Tabs>
         </section>
 
 

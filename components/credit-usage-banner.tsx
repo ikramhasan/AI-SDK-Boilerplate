@@ -37,11 +37,8 @@ export function CreditUsageBanner() {
 
   if (!billingStatus) return null
 
-  const { creditBalance, subscription, plans, trialExpiresAt } = billingStatus
-
-  const activePlan = subscription
-    ? plans.find((p) => p.productId === subscription.productId)
-    : null
+  const { creditBalance, subscription, activePlan, trialExpiresAt } =
+    billingStatus
 
   const totalCredits = activePlan
     ? activePlan.credits
@@ -50,6 +47,7 @@ export function CreditUsageBanner() {
       : 0
 
   const isTrialOrFree = !subscription
+  const canUpgrade = activePlan?.tier !== "scale"
   const creditsUsed = Math.max(0, totalCredits - creditBalance)
   const usagePercent = totalCredits > 0
     ? Math.min(100, Math.round((creditsUsed / totalCredits) * 100))
@@ -57,7 +55,7 @@ export function CreditUsageBanner() {
       ? 100
       : 0
   const isNearLimit = usagePercent >= 85
-  const showUpgrade = isTrialOrFree || isNearLimit
+  const showUpgrade = canUpgrade && (isTrialOrFree || isNearLimit)
 
   return (
     <div

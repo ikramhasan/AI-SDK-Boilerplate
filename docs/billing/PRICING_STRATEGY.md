@@ -50,6 +50,18 @@ Do not discount credits until real usage data proves the blended margin is safel
 | Pro | $100 | 10,000 | $100 | Power-user plan with shared knowledge, larger usage needs, and priority support. |
 | Scale | $250 | 25,000 | $250 | Higher rate limits, priority support, larger file limits. |
 
+Yearly subscriptions should be separate Polar products priced at 20% off the
+monthly equivalent. Because yearly products renew on yearly billing periods,
+grant the annual credit bucket once per period:
+
+| Tier | Price / year | Included credits / year |
+| --- | ---: | ---: |
+| Basic | $96 | 12,000 |
+| Starter | $192 | 24,000 |
+| Plus | $480 | 60,000 |
+| Pro | $960 | 120,000 |
+| Scale | $2,400 | 300,000 |
+
 ## Free Trial
 
 Give every new user a one-time trial grant:

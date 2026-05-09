@@ -4,20 +4,26 @@ import {
   useAuth,
   useSendVerificationEmail,
   useSignInEmail,
-  useSignInUsername
+  useSignInUsername,
 } from "@better-auth-ui/react"
 import { type SyntheticEvent, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Field,
   FieldDescription,
   FieldError,
   FieldGroup,
-  FieldSeparator
+  FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,7 +54,7 @@ function isEmail(value: string): boolean {
 export function SignIn({
   className,
   socialLayout,
-  socialPosition = "bottom"
+  socialPosition = "bottom",
 }: SignInProps) {
   const {
     basePaths,
@@ -62,13 +68,13 @@ export function SignIn({
     username: usernameConfig,
     viewPaths,
     navigate,
-    Link
+    Link,
   } = useAuth()
 
   const [password, setPassword] = useState("")
 
   const { mutate: sendVerificationEmail } = useSendVerificationEmail({
-    onSuccess: () => toast.success(localization.auth.verificationEmailSent)
+    onSuccess: () => toast.success(localization.auth.verificationEmailSent),
   })
 
   const { mutate: signInEmail, isPending: signInEmailPending } = useSignInEmail(
@@ -83,15 +89,15 @@ export function SignIn({
               onClick: () =>
                 sendVerificationEmail({
                   email,
-                  callbackURL: `${baseURL}${redirectTo}`
-                })
-            }
+                  callbackURL: `${baseURL}${redirectTo}`,
+                }),
+            },
           })
         } else {
           toast.error(error.error?.message || error.message)
         }
       },
-      onSuccess: () => navigate({ to: redirectTo })
+      onSuccess: () => navigate({ to: redirectTo }),
     }
   )
 
@@ -101,7 +107,7 @@ export function SignIn({
         setPassword("")
         toast.error(error.error?.message || error.message)
       },
-      onSuccess: () => navigate({ to: redirectTo })
+      onSuccess: () => navigate({ to: redirectTo }),
     })
 
   const isPending = signInEmailPending || signInUsernamePending
@@ -121,13 +127,13 @@ export function SignIn({
     if (usernameConfig?.enabled && !isEmail(email)) {
       signInUsername({
         username: email,
-        password
+        password,
       })
     } else {
       signInEmail({
         email,
         password,
-        ...(emailAndPassword?.rememberMe ? { rememberMe } : {})
+        ...(emailAndPassword?.rememberMe ? { rememberMe } : {}),
       })
     }
   }
@@ -136,15 +142,23 @@ export function SignIn({
     emailAndPassword?.enabled && socialProviders && socialProviders.length > 0
 
   return (
-    <Card className={cn("w-full max-w-sm", className)}>
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold">
+    <Card
+      className={cn(
+        "w-full border-0 bg-card/95 py-7 shadow-[0_24px_90px_-40px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.08)_inset] ring-1 ring-foreground/10 backdrop-blur-xl",
+        className
+      )}
+    >
+      <CardHeader className="gap-2 px-7">
+        <CardTitle className="text-2xl font-semibold tracking-tight text-balance">
           {localization.auth.signIn}
         </CardTitle>
+        <CardDescription className="leading-6 text-pretty">
+          Continue to your HeyClaw workspace.
+        </CardDescription>
       </CardHeader>
 
-      <CardContent>
-        <div className="flex flex-col gap-6">
+      <CardContent className="px-7">
+        <div className="flex flex-col gap-5">
           {socialPosition === "top" && (
             <>
               {socialProviders && socialProviders.length > 0 && (
@@ -155,7 +169,7 @@ export function SignIn({
               )}
 
               {showSeparator && (
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card m-0 text-xs flex items-center">
+                <FieldSeparator className="m-0 flex items-center text-xs *:data-[slot=field-separator-content]:bg-card/95">
                   {localization.auth.or}
                 </FieldSeparator>
               )}
@@ -164,7 +178,7 @@ export function SignIn({
 
           {emailAndPassword?.enabled && (
             <form onSubmit={handleSubmit}>
-              <FieldGroup>
+              <FieldGroup className="gap-4">
                 <Field data-invalid={!!fieldErrors.email}>
                   <Label htmlFor="email">
                     {usernameConfig?.enabled
@@ -189,7 +203,7 @@ export function SignIn({
                     onChange={() => {
                       setFieldErrors((prev) => ({
                         ...prev,
-                        email: undefined
+                        email: undefined,
                       }))
                     }}
                     onInvalid={(e) => {
@@ -197,7 +211,7 @@ export function SignIn({
 
                       setFieldErrors((prev) => ({
                         ...prev,
-                        email: (e.target as HTMLInputElement).validationMessage
+                        email: (e.target as HTMLInputElement).validationMessage,
                       }))
                     }}
                     aria-invalid={!!fieldErrors.email}
@@ -220,7 +234,7 @@ export function SignIn({
 
                       setFieldErrors((prev) => ({
                         ...prev,
-                        password: undefined
+                        password: undefined,
                       }))
                     }}
                     placeholder={localization.auth.passwordPlaceholder}
@@ -234,7 +248,7 @@ export function SignIn({
                       setFieldErrors((prev) => ({
                         ...prev,
                         password: (e.target as HTMLInputElement)
-                          .validationMessage
+                          .validationMessage,
                       }))
                     }}
                     aria-invalid={!!fieldErrors.password}
@@ -263,7 +277,12 @@ export function SignIn({
                 )}
 
                 <div className="flex flex-col gap-3">
-                  <Button type="submit" disabled={isPending}>
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className="h-11 transition-transform active:scale-[0.96]"
+                    disabled={isPending}
+                  >
                     {isPending && <Spinner />}
 
                     {localization.auth.signIn}
@@ -282,7 +301,7 @@ export function SignIn({
           {socialPosition === "bottom" && (
             <>
               {showSeparator && (
-                <FieldSeparator className="*:data-[slot=field-separator-content]:bg-card text-xs flex items-center">
+                <FieldSeparator className="flex items-center text-xs *:data-[slot=field-separator-content]:bg-card/95">
                   {localization.auth.or}
                 </FieldSeparator>
               )}
@@ -297,28 +316,28 @@ export function SignIn({
           )}
         </div>
 
-        <div className="flex flex-col gap-3 items-center w-full mt-4">
-          {emailAndPassword?.forgotPassword && (
-            <Link
-              href={`${basePaths.auth}/${viewPaths.auth.forgotPassword}`}
-              className="self-center text-sm underline-offset-4 hover:underline"
-            >
-              {localization.auth.forgotPasswordLink}
-            </Link>
-          )}
+        {emailAndPassword?.enabled && (
+          <div className="mt-5 flex w-full flex-col items-center gap-3 border-t border-border/60 pt-5">
+            {emailAndPassword.forgotPassword && (
+              <Link
+                href={`${basePaths.auth}/${viewPaths.auth.forgotPassword}`}
+                className="self-center text-sm text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
+              >
+                {localization.auth.forgotPasswordLink}
+              </Link>
+            )}
 
-          {emailAndPassword?.enabled && (
-            <FieldDescription className="text-center">
+            <FieldDescription className="text-center leading-6">
               {localization.auth.needToCreateAnAccount}{" "}
               <Link
                 href={`${basePaths.auth}/${viewPaths.auth.signUp}`}
-                className="underline underline-offset-4"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
               >
                 {localization.auth.signUp}
               </Link>
             </FieldDescription>
-          )}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

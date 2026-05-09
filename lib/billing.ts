@@ -6,6 +6,16 @@ export const BILLING_TRIAL = {
   days: 30,
 } as const
 
+export const BILLING_INTERVAL = {
+  monthly: "monthly",
+  yearly: "yearly",
+} as const
+
+export type BillingInterval =
+  (typeof BILLING_INTERVAL)[keyof typeof BILLING_INTERVAL]
+
+export const YEARLY_SUBSCRIPTION_DISCOUNT = 0.2
+
 export const BILLING_GENERATION_GUARD = {
   minimumCreditsBeforeGeneration: 1,
 } as const
@@ -60,42 +70,107 @@ export const CREDIT_LEDGER_EXTERNAL_ID_PREFIX = {
 
 export const POLAR_PRODUCT_ENV = {
   basic: "POLAR_BASIC_PRODUCT_ID",
+  basicYearly: "POLAR_BASIC_YEARLY_PRODUCT_ID",
   starter: "POLAR_STARTER_PRODUCT_ID",
+  starterYearly: "POLAR_STARTER_YEARLY_PRODUCT_ID",
   plus: "POLAR_PLUS_PRODUCT_ID",
+  plusYearly: "POLAR_PLUS_YEARLY_PRODUCT_ID",
   pro: "POLAR_PRO_PRODUCT_ID",
+  proYearly: "POLAR_PRO_YEARLY_PRODUCT_ID",
   scale: "POLAR_SCALE_PRODUCT_ID",
+  scaleYearly: "POLAR_SCALE_YEARLY_PRODUCT_ID",
 } as const
 
 export const SUBSCRIPTION_PLANS = {
   basic: {
     name: "Basic",
+    tier: "basic",
+    interval: BILLING_INTERVAL.monthly,
     env: POLAR_PRODUCT_ENV.basic,
     priceUsd: 10,
+    monthlyPriceUsd: 10,
     credits: 1_000,
+  },
+  basicYearly: {
+    name: "Basic",
+    tier: "basic",
+    interval: BILLING_INTERVAL.yearly,
+    env: POLAR_PRODUCT_ENV.basicYearly,
+    priceUsd: 96,
+    monthlyPriceUsd: 8,
+    credits: 12_000,
   },
   starter: {
     name: "Starter",
+    tier: "starter",
+    interval: BILLING_INTERVAL.monthly,
     env: POLAR_PRODUCT_ENV.starter,
     priceUsd: 20,
+    monthlyPriceUsd: 20,
     credits: 2_000,
+  },
+  starterYearly: {
+    name: "Starter",
+    tier: "starter",
+    interval: BILLING_INTERVAL.yearly,
+    env: POLAR_PRODUCT_ENV.starterYearly,
+    priceUsd: 192,
+    monthlyPriceUsd: 16,
+    credits: 24_000,
   },
   plus: {
     name: "Plus",
+    tier: "plus",
+    interval: BILLING_INTERVAL.monthly,
     env: POLAR_PRODUCT_ENV.plus,
     priceUsd: 50,
+    monthlyPriceUsd: 50,
     credits: 5_000,
+  },
+  plusYearly: {
+    name: "Plus",
+    tier: "plus",
+    interval: BILLING_INTERVAL.yearly,
+    env: POLAR_PRODUCT_ENV.plusYearly,
+    priceUsd: 480,
+    monthlyPriceUsd: 40,
+    credits: 60_000,
   },
   pro: {
     name: "Pro",
+    tier: "pro",
+    interval: BILLING_INTERVAL.monthly,
     env: POLAR_PRODUCT_ENV.pro,
     priceUsd: 100,
+    monthlyPriceUsd: 100,
     credits: 10_000,
+  },
+  proYearly: {
+    name: "Pro",
+    tier: "pro",
+    interval: BILLING_INTERVAL.yearly,
+    env: POLAR_PRODUCT_ENV.proYearly,
+    priceUsd: 960,
+    monthlyPriceUsd: 80,
+    credits: 120_000,
   },
   scale: {
     name: "Scale",
+    tier: "scale",
+    interval: BILLING_INTERVAL.monthly,
     env: POLAR_PRODUCT_ENV.scale,
     priceUsd: 250,
+    monthlyPriceUsd: 250,
     credits: 25_000,
+  },
+  scaleYearly: {
+    name: "Scale",
+    tier: "scale",
+    interval: BILLING_INTERVAL.yearly,
+    env: POLAR_PRODUCT_ENV.scaleYearly,
+    priceUsd: 2_400,
+    monthlyPriceUsd: 200,
+    credits: 300_000,
   },
 } as const
 

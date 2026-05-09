@@ -35,6 +35,9 @@ export function Navbar() {
             <Link href="#integrations">Integrations</Link>
           </Button>
           <Button variant="ghost" size="sm" asChild>
+            <Link href="#pricing">Pricing</Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
             <Link href="#testimonials">Testimonials</Link>
           </Button>
         </nav>
