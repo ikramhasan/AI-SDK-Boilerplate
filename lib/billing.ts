@@ -197,6 +197,8 @@ export const TOOL_NAMES = {
   tavilySearch: "tavilySearch",
   tavilyExtract: "tavilyExtract",
   fetchImages: "fetchImages",
+  supermemorySearchMemories: "searchMemories",
+  supermemoryAddMemory: "addMemory",
   composioPrefix: "COMPOSIO_",
 } as const
 
@@ -213,6 +215,19 @@ export const TOOL_PRICING = {
     credits: 4,
     vendorCostUsd: 0.005,
     service: "google_custom_search",
+  },
+  supermemory: {
+    searchMemories: {
+      vendorCostUsdPerQuery: 0.000005,
+      service: "supermemory",
+      pricingUnit: "search_traversal_query",
+    },
+    addMemory: {
+      vendorCostUsdPerThousandSmTokens: 0.005,
+      service: "supermemory",
+      pricingUnit: "plain_text_sm_tokens",
+      estimatedCharsPerToken: 4,
+    },
   },
   composio: {
     credits: 1,
@@ -243,6 +258,19 @@ export function getSubscriptionProductIds() {
 export function creditsForVendorCost(vendorCostUsd: number) {
   if (vendorCostUsd <= 0) return 0
   return Math.max(1, Math.ceil(vendorCostUsd / MAX_VENDOR_COST_PER_CREDIT_USD))
+}
+
+function estimatePlainTextTokens(value: unknown) {
+  if (typeof value !== "string") return 0
+  const trimmed = value.trim()
+  if (!trimmed) return 0
+  return Math.max(
+    1,
+    Math.ceil(
+      trimmed.length /
+        TOOL_PRICING.supermemory.addMemory.estimatedCharsPerToken
+    )
+  )
 }
 
 export function calculateBillingMargin(
@@ -293,6 +321,44 @@ export function getToolCallCharge(
       credits: TOOL_PRICING.fetchImages.credits,
       vendorCostUsd: TOOL_PRICING.fetchImages.vendorCostUsd,
       metadata: { service: TOOL_PRICING.fetchImages.service },
+    }
+  }
+
+  if (toolName === TOOL_NAMES.supermemorySearchMemories) {
+    const vendorCostUsd =
+      TOOL_PRICING.supermemory.searchMemories.vendorCostUsdPerQuery
+    return {
+      credits: creditsForVendorCost(vendorCostUsd),
+      vendorCostUsd,
+      metadata: {
+        service: TOOL_PRICING.supermemory.searchMemories.service,
+        pricingUnit: TOOL_PRICING.supermemory.searchMemories.pricingUnit,
+        queryCount: 1,
+        includeFullDocs: inputRecord.includeFullDocs === true,
+        ...(typeof inputRecord.limit === "number"
+          ? { limit: inputRecord.limit }
+          : {}),
+      },
+    }
+  }
+
+  if (toolName === TOOL_NAMES.supermemoryAddMemory) {
+    const estimatedSmTokens = estimatePlainTextTokens(inputRecord.memory)
+    const vendorCostUsd =
+      (estimatedSmTokens / 1000) *
+      TOOL_PRICING.supermemory.addMemory.vendorCostUsdPerThousandSmTokens
+    return {
+      credits: creditsForVendorCost(vendorCostUsd),
+      vendorCostUsd,
+      metadata: {
+        service: TOOL_PRICING.supermemory.addMemory.service,
+        pricingUnit: TOOL_PRICING.supermemory.addMemory.pricingUnit,
+        estimatedSmTokens,
+        estimatedCharsPerToken:
+          TOOL_PRICING.supermemory.addMemory.estimatedCharsPerToken,
+        usageEstimated: true,
+        deduplicationNotObservable: true,
+      },
     }
   }
 

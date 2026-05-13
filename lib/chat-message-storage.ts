@@ -78,6 +78,61 @@ function toolNameForPart(part: {
     : part.type.replace(/^tool-/, "")
 }
 
+function compactAddMemoryInput(input: unknown) {
+  const record = isRecord(input) ? input : {}
+  return {
+    memory: getString(record.memory),
+  }
+}
+
+function compactAddMemoryOutput(output: unknown) {
+  const record = isRecord(output) ? output : {}
+  const memory = isRecord(record.memory) ? record.memory : {}
+  return {
+    success: getBoolean(record.success),
+    error: getString(record.error),
+    memory: {
+      id: getString(memory.id),
+    },
+  }
+}
+
+function compactSearchMemoriesInput(input: unknown) {
+  const record = isRecord(input) ? input : {}
+  return {
+    informationToGet: getString(record.informationToGet),
+    includeFullDocs: getBoolean(record.includeFullDocs),
+    limit: getNumber(record.limit),
+  }
+}
+
+function compactSearchMemoriesOutput(output: unknown) {
+  const record = isRecord(output) ? output : {}
+  const results = getArray(record.results) ?? []
+
+  return {
+    success: getBoolean(record.success),
+    error: getString(record.error),
+    count: getNumber(record.count),
+    results: results
+      .filter(isRecord)
+      .slice(0, 5)
+      .map((result) => ({
+        title: getString(result.title),
+        content: getString(result.content),
+        summary: getString(result.summary),
+        text: getString(result.text),
+        memory: getString(result.memory),
+        chunks: (getArray(result.chunks) ?? [])
+          .filter(isRecord)
+          .slice(0, 3)
+          .map((chunk) => ({
+            content: getString(chunk.content),
+          })),
+      })),
+  }
+}
+
 function compactCreateChartInput(input: unknown) {
   const record = isRecord(input) ? input : {}
   return {
@@ -394,6 +449,10 @@ function compactTavilyExtractOutput(output: unknown) {
 
 function compactToolInput(toolName: string, input: unknown): unknown {
   switch (toolName) {
+    case "addMemory":
+      return compactAddMemoryInput(input)
+    case "searchMemories":
+      return compactSearchMemoriesInput(input)
     case "createChart":
       return compactCreateChartInput(input)
     case "getDiagramImageForDocument":
@@ -423,6 +482,10 @@ function compactToolInput(toolName: string, input: unknown): unknown {
 
 function compactToolOutput(toolName: string, output: unknown): unknown {
   switch (toolName) {
+    case "addMemory":
+      return compactAddMemoryOutput(output)
+    case "searchMemories":
+      return compactSearchMemoriesOutput(output)
     case "createChart":
       return compactCreateChartOutput(output)
     case "getDiagramImageForDocument":

@@ -183,10 +183,14 @@ Use this pricing table for current app tools with external vendor cost. MCP serv
 | Tavily Extract, `basic` | $0.008 per 5 successful URL extractions = $0.0016 each | 2 credits per successful extracted URL | $0.02 | 92.00% |
 | Tavily Extract, `advanced` | $0.016 per 5 successful URL extractions = $0.0032 each | 3 credits per successful extracted URL | $0.03 | 89.33% |
 | Google Custom Search JSON API | $5 per 1,000 queries = $0.005 per query | 4 credits per image search query | $0.04 | 87.50% |
+| Supermemory Search/Traversal | $0.005 per 1,000 queries = $0.000005 each | 1 credit per `searchMemories` call | $0.01 | 99.95% |
+| Supermemory Memory, plain text | $0.005 per 1,000 SM tokens | `ceil(vendor_cost / $0.0015)`, minimum 1 credit for nonzero cost. Example: 1K SM tokens = 4 credits | $0.04 at 1K SM tokens | 87.50% |
 | Composio standard tool call, $29 plan | $0.299 per 1,000 calls = $0.000299 each | 1 credit per tool call | $0.01 | 97.01% |
 | Composio premium tool call, $29 plan | $0.897 per 1,000 calls = $0.000897 each | 1 credit per premium call | $0.01 | 91.03% |
 | Composio standard tool call, $229 plan | $0.249 per 1,000 calls = $0.000249 each | 1 credit per tool call | $0.01 | 97.51% |
 | Composio premium tool call, $229 plan | $0.747 per 1,000 calls = $0.000747 each | 1 credit per premium call | $0.01 | 92.53% |
+
+For Supermemory `addMemory`, the current AI SDK tool output does not expose billed SM-token usage or deduplication status. Until Supermemory returns billable usage in the response, log a conservative plain-text estimate using the submitted memory text, mark the ledger metadata with `usageEstimated: true`, and keep `deduplicationNotObservable: true` for auditability. If rich-content memory ingestion is added, use the richer $0.010 per 1,000 SM-token rate unless the API response proves the content was billed as plain text.
 
 Internal tools with no direct external cost, such as calculator, current date/time, local chart construction, and ask-user-question, should still be logged individually. They can be priced at 0 credits for user friendliness, or 1 credit if abuse control is more important than generosity.
 
@@ -221,12 +225,13 @@ Do not rely only on aggregate monthly totals. You need per-event logs so dispute
 - If a model returns missing usage or cost is zero because pricing lookup failed, either block the request or charge a conservative fallback.
 - Keep a provider/model price snapshot on each usage record. Live pricing can change later.
 - Add admin alerts when blended gross margin drops below 88%; this gives time to react before crossing the 85% floor.
-- Review Tavily, Google Custom Search, Composio, and AI model pricing monthly.
+- Review Tavily, Google Custom Search, Supermemory, Composio, and AI model pricing monthly.
 
 ## Sources
 
 - Convex pricing: https://www.convex.dev/pricing
 - Tavily API credits: https://docs.tavily.com/documentation/api-credits
 - Google Custom Search JSON API pricing: https://developers.google.com/custom-search/v1/overview
+- Supermemory pricing: https://supermemory.ai/pricing/
 - Composio pricing: https://composio.dev/pricing
 - Composio premium tools: https://docs.composio.dev/toolkits/premium-tools
