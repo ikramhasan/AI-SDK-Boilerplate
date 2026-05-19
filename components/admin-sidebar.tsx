@@ -19,7 +19,6 @@ import {
   ArrowLeft01Icon,
   ChatFeedbackIcon,
   ChartLineData03Icon,
-  AiBrain05Icon,
 } from "@hugeicons/core-free-icons"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -34,11 +33,6 @@ export function AdminSidebar() {
       title: siteName,
       href: "/admin",
       icon: Settings02Icon,
-    },
-    {
-      title: "Models",
-      href: "/admin/models",
-      icon: AiBrain05Icon,
     },
     {
       title: "Users",
