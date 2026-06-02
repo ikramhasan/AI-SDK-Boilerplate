@@ -70,17 +70,15 @@ export const ChainOfThought = memo(
 
     const prevStreamingRef = useRef(isStreaming);
 
-    // Auto-open when streaming starts
-    useEffect(() => {
-      if (isStreaming && !isOpen) {
-        setIsOpen(true);
-      }
-    }, [isStreaming, isOpen, setIsOpen]);
-
-    // Auto-close when streaming transitions from true → false
+    // Auto-open when streaming starts, and auto-close when it ends.
     useEffect(() => {
       const wasStreaming = prevStreamingRef.current;
       prevStreamingRef.current = isStreaming;
+
+      if (!wasStreaming && isStreaming) {
+        setIsOpen(true);
+        return;
+      }
 
       if (wasStreaming && !isStreaming && isOpen) {
         const timer = setTimeout(() => {
@@ -107,10 +105,12 @@ export const ChainOfThought = memo(
 
 export type ChainOfThoughtHeaderProps = ComponentProps<
   typeof CollapsibleTrigger
->;
+> & {
+  isThinking?: boolean;
+};
 
 export const ChainOfThoughtHeader = memo(
-  ({ className, children, ...props }: ChainOfThoughtHeaderProps) => {
+  ({ className, children, isThinking, ...props }: ChainOfThoughtHeaderProps) => {
     const { isOpen, setIsOpen } = useChainOfThought();
 
     return (
@@ -122,7 +122,9 @@ export const ChainOfThoughtHeader = memo(
           )}
           {...props}
         >
-          <HugeiconsIcon icon={Idea01Icon} className="size-4" />
+          {!isThinking && (
+            <HugeiconsIcon icon={Idea01Icon} className="size-4" />
+          )}
           <span className="flex-1 text-left">
             {children ?? "Chain of Thought"}
           </span>

@@ -162,15 +162,19 @@ export const save = mutation({
         incoming.parts,
         incoming.toolRuns
       );
+      const metadataChanged =
+        JSON.stringify(existing[i].metadata ?? null) !==
+        JSON.stringify(incoming.metadata ?? null);
 
       if (
         existing[i].role !== incoming.role ||
-        JSON.stringify(existingHydratedParts) !== JSON.stringify(incomingHydratedParts)
+        JSON.stringify(existingHydratedParts) !== JSON.stringify(incomingHydratedParts) ||
+        metadataChanged
       ) {
         await ctx.db.patch(existing[i]._id, {
           role: incoming.role,
           parts: incoming.parts,
-          ...(incoming.metadata ? { metadata: incoming.metadata } : {}),
+          ...(incoming.metadata !== undefined ? { metadata: incoming.metadata } : {}),
         });
 
         for (const toolRun of toolRunsByMessageId.get(existing[i]._id) ?? []) {
@@ -195,7 +199,7 @@ export const save = mutation({
         chatId: args.chatId,
         role: message.role,
         parts: message.parts,
-        ...(message.metadata ? { metadata: message.metadata } : {}),
+        ...(message.metadata !== undefined ? { metadata: message.metadata } : {}),
       });
 
       for (const toolRun of message.toolRuns) {

@@ -8,8 +8,10 @@ import { useCallback, useEffect, useEffectEvent, useRef, useState } from "react"
 import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell } from "@/app/chat/_components/chat-shell"
 import {
+  addThinkingDurationToLastAssistantMessage,
   chatTransport,
   extractFriendlyError,
+  getElapsedThinkingSeconds,
   hasChatSubmission,
   toStoredMessages,
   type ChatSubmissionFile,
@@ -40,6 +42,8 @@ function NewChatView() {
   const chatIdRef = useRef<string | null>(null)
   const [chatId, setChatId] = useState<string | null>(null)
   const titleGeneratedRef = useRef(false)
+  const thinkingStartedAtRef = useRef<number | null>(null)
+  const thinkingDurationsRef = useRef(new Map<string, number>())
 
   const { messages, sendMessage, setMessages, status, stop } = useChat({
     transport: chatTransport,
@@ -84,10 +88,28 @@ function NewChatView() {
       const id = chatIdRef.current
       if (!id) return
 
+      const assistantMessageId = allMessages.findLast(
+        (message) => message.role === "assistant"
+      )?.id
+      const thinkingDurationSeconds =
+        (assistantMessageId
+          ? thinkingDurationsRef.current.get(assistantMessageId)
+          : undefined) ??
+        getElapsedThinkingSeconds(thinkingStartedAtRef.current)
+      thinkingStartedAtRef.current = null
+      if (assistantMessageId) {
+        thinkingDurationsRef.current.delete(assistantMessageId)
+      }
+      const messagesWithDuration = addThinkingDurationToLastAssistantMessage(
+        allMessages,
+        thinkingDurationSeconds
+      )
+      setMessages(messagesWithDuration)
+
       try {
         await saveMessages({
           chatId: id as Id<"chats">,
-          messages: toStoredMessages(allMessages),
+          messages: toStoredMessages(messagesWithDuration),
         })
       } catch (error) {
         console.error("Failed to save chat:", error)
@@ -119,6 +141,9 @@ function NewChatView() {
         titleGeneratedRef.current = true
       }
 
+      thinkingStartedAtRef.current = Date.now()
+      thinkingDurationsRef.current.clear()
+
       sendMessage(
         {
           text,
@@ -136,11 +161,19 @@ function NewChatView() {
     [createChat, sendMessage]
   )
 
+  const handleThinkingDone = useCallback(
+    (messageId: string, durationSeconds: number) => {
+      thinkingDurationsRef.current.set(messageId, durationSeconds)
+    },
+    []
+  )
+
   return (
     <ChatConversation
       autoFocus
       chatId={chatId ?? undefined}
       messages={messages}
+      onThinkingDone={handleThinkingDone}
       onSubmit={handleSubmit}
       showSuggestions
       status={status}
