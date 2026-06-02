@@ -15,6 +15,7 @@ type ChatConversationProps = {
   onSubmit: (text: string, files: ChatSubmissionFile[]) => void
   chatId?: string
   reload?: () => void
+  onThinkingDone?: (messageId: string, durationSeconds: number) => void
   showSuggestions?: boolean
   emptyTitle?: string
   autoFocus?: boolean
@@ -27,6 +28,7 @@ export function ChatConversation({
   onSubmit,
   chatId,
   reload,
+  onThinkingDone,
   showSuggestions = false,
   emptyTitle = "What can I help you with?",
   autoFocus = false,
@@ -42,6 +44,7 @@ export function ChatConversation({
             status={status}
             reload={reload}
             chatId={chatId}
+            onThinkingDone={onThinkingDone}
             onSubmit={(text) => onSubmit(text, [])}
           />
         ) : (

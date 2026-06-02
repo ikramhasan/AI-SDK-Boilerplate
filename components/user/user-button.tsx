@@ -5,6 +5,7 @@ import { useQuery } from "convex/react"
 import {
   ChevronsUpDown,
   CreditCard,
+  BrainCircuit,
   LogIn,
   LogOut,
   Monitor,
@@ -153,6 +154,13 @@ export function UserButton({
               <Link href="/settings/integrations">
                 <Plug className="text-muted-foreground" />
                 Integrations
+              </Link>
+            </DropdownMenuItem>
+
+            <DropdownMenuItem asChild>
+              <Link href="/settings/memories">
+                <BrainCircuit className="text-muted-foreground" />
+                Memories
               </Link>
             </DropdownMenuItem>
 

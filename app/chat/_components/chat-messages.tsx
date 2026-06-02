@@ -54,7 +54,8 @@ import {
   exportMessageAsPdf,
 } from "@/lib/export-chat";
 import { SourcesChip } from "@/components/sources-dialog";
-import { Shimmer } from "@/components/ai-elements/shimmer";
+import { ThinkingIndicator } from "@/components/ui/thinking-indicator";
+import { getThinkingDurationSeconds } from "@/app/chat/_components/chat-utils";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -251,6 +252,15 @@ function isAskUserQuestionEcho(text: string, titles: Set<string>): boolean {
   return titles.has(normalized);
 }
 
+function hasAssistantMessageAfterLastUser(messages: UIMessage[]): boolean {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message.role === "user") return false;
+    if (message.role === "assistant") return true;
+  }
+  return false;
+}
+
 const CopyAction = memo(({ content }: { content: string }) => {
   const handleClick = useCallback(() => {
     navigator.clipboard.writeText(content);
@@ -297,6 +307,7 @@ export function ChatMessages({
   chatId,
   onSubmit,
   allowToolReplies = true,
+  onThinkingDone,
 }: {
   messages: UIMessage[];
   status: string;
@@ -304,6 +315,7 @@ export function ChatMessages({
   chatId?: string;
   onSubmit: (text: string) => void | Promise<void>;
   allowToolReplies?: boolean;
+  onThinkingDone?: (messageId: string, durationSeconds: number) => void;
 }) {
   const submitFeedback = useMutation(api.feedback.submit);
   const removeFeedback = useMutation(api.feedback.remove);
@@ -376,6 +388,10 @@ export function ChatMessages({
     });
     setFeedbackDialog((prev) => ({ ...prev, open: false }));
   }, [chatId, feedbackDialog.messageId, feedbackDialog.rating, submitFeedback]);
+
+  const showSubmittedIndicator =
+    (status === "submitted" || status === "streaming") &&
+    !hasAssistantMessageAfterLastUser(messages);
 
   return (
     <>
@@ -497,8 +513,11 @@ export function ChatMessages({
                     elements.push(
                       <BackgroundToolsGroup
                         key={`bg-group-${message.id}`}
+                        messageId={message.id}
                         parts={allBgParts.map((g) => g.part) as Parameters<typeof BackgroundToolsGroup>[0]["parts"]}
                         isStreaming={!allDone}
+                        thinkingDurationSeconds={getThinkingDurationSeconds(message)}
+                        onThinkingDone={onThinkingDone}
                         isResponseStreaming={
                           status === "streaming" &&
                           message.role === "assistant" &&
@@ -513,10 +532,24 @@ export function ChatMessages({
                     .sort((a, b) => a.order - b.order)
                     .forEach((item) => elements.push(item.element));
 
+                  // If this is the last assistant message, it's streaming, and has no
+                  // content yet, show the thinking indicator in-place so there's no
+                  // layout shift when BackgroundToolsGroup appears.
+                  if (
+                    elements.length === 0 &&
+                    message.role === "assistant" &&
+                    index === messages.length - 1 &&
+                    (status === "submitted" || status === "streaming")
+                  ) {
+                    elements.push(
+                      <ThinkingIndicator key="thinking-placeholder" />
+                    );
+                  }
+
                   return elements;
                 })()}
                 {message.role === "assistant" &&
-                  status !== "streaming" &&
+                  !(status === "streaming" && index === messages.length - 1) &&
                   chatId && (
                     <MessageActions>
                       {index === messages.length - 1 && reload && (
@@ -560,11 +593,9 @@ export function ChatMessages({
               </Message>
             );
           })}
-          {status === "submitted" && (
+          {showSubmittedIndicator && (
             <Message from="assistant">
-              <MessageContent>
-                <Shimmer className="text-sm">Working...</Shimmer>
-              </MessageContent>
+              <ThinkingIndicator />
             </Message>
           )}
         </ConversationContent>

@@ -162,15 +162,8 @@ export default function BillingPage() {
                                     </Badge>
                                   )}
                                 </span>
-                                <span className="text-right text-sm font-normal text-muted-foreground">
-                                  <span className="block">
-                                    {formatMoney(plan.monthlyPriceUsd)}/mo
-                                  </span>
-                                  {isYearly && (
-                                    <span className="block text-xs">
-                                      {formatMoney(plan.priceUsd)}/yr
-                                    </span>
-                                  )}
+                                <span className="whitespace-nowrap text-right text-sm font-normal tabular-nums text-muted-foreground">
+                                  {formatMoney(plan.monthlyPriceUsd)}/mo
                                 </span>
                               </CardTitle>
                             </CardHeader>

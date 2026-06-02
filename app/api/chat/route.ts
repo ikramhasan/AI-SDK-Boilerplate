@@ -13,7 +13,6 @@ import { Id } from "@/convex/_generated/dataModel"
 import { extractUsage } from "@/lib/usage"
 import { loadConfig } from "@/lib/agents/config"
 import { createModel } from "@/lib/agents/provider"
-import { loadKnowledge, buildSystemMessage } from "@/lib/agents/knowledge"
 import { resolveTools } from "@/lib/agents/tools"
 import { requireCurrentUserConvexAuth } from "@/lib/convex/server"
 import {
@@ -151,27 +150,11 @@ export async function POST(req: Request) {
         })
       : null
 
-  const { textChunks, fileParts } = await loadKnowledge(
-    config.raw?.knowledgeFileIds
-  )
   const { tools, mcpClients } = await resolveTools(config.raw, userId)
 
-  const systemMessage = buildSystemMessage(config.systemMessage, textChunks)
+  const systemMessage = config.systemMessage
 
-  // Inject binary knowledge files (PDFs, etc.) as an initial context message
   const convertedMessages = await convertToModelMessages(messages)
-  if (fileParts.length > 0) {
-    convertedMessages.unshift({
-      role: "user" as const,
-      content: [
-        {
-          type: "text" as const,
-          text: "The following files are from the knowledge base. Use them as context for all responses:",
-        },
-        ...fileParts,
-      ],
-    })
-  }
 
   const result = streamText({
     model,

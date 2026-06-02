@@ -10,6 +10,7 @@ import { getChartImageTool } from "./get-chart-image";
 import { getDiagramImageTool } from "./get-diagram-image";
 import { getAskUserQuestionTool } from "./ask-user-question";
 import { getCurrentDateTimeTool } from "./get-current-date-time";
+import { getUserMemoryTools } from "@/lib/agents/supermemory";
 
 export interface ResolvedTools {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,8 +69,11 @@ export async function resolveTools(config: any, userId: string | null): Promise<
   // Composio tools
   const composioTools = await getComposioTools(userId);
 
+  // Memory tools are always available for authenticated users.
+  const memoryTools = userId ? getUserMemoryTools(userId) : {};
+
   return {
-    tools: { ...tools, ...mcpTools, ...composioTools },
+    tools: { ...tools, ...mcpTools, ...composioTools, ...memoryTools },
     mcpClients,
   };
 }

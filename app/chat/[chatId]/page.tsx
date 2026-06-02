@@ -7,12 +7,14 @@ import { useSession } from "@better-auth-ui/react"
 import { api } from "@/convex/_generated/api"
 import { Id } from "@/convex/_generated/dataModel"
 import { useParams, useRouter } from "next/navigation"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { ChatConversation } from "@/app/chat/_components/chat-conversation"
 import { ChatAppShell, ChatShellLoading } from "@/app/chat/_components/chat-shell"
 import {
+  addThinkingDurationToLastAssistantMessage,
   chatTransport,
   extractFriendlyError,
+  getElapsedThinkingSeconds,
   hasChatSubmission,
   toStoredMessages,
   toUIMessages,
@@ -75,6 +77,8 @@ function ChatView({
   initialMessages: UIMessage[]
 }) {
   const saveMessages = useMutation(api.messages.save)
+  const thinkingStartedAtRef = useRef<number | null>(null)
+  const thinkingDurationsRef = useRef(new Map<string, number>())
 
   const { messages, sendMessage, setMessages, status, stop, regenerate } = useChat({
     id: chatId,
@@ -100,10 +104,28 @@ function ChatView({
       })
     },
     onFinish: async ({ messages: allMessages }) => {
+      const assistantMessageId = allMessages.findLast(
+        (message) => message.role === "assistant"
+      )?.id
+      const thinkingDurationSeconds =
+        (assistantMessageId
+          ? thinkingDurationsRef.current.get(assistantMessageId)
+          : undefined) ??
+        getElapsedThinkingSeconds(thinkingStartedAtRef.current)
+      thinkingStartedAtRef.current = null
+      if (assistantMessageId) {
+        thinkingDurationsRef.current.delete(assistantMessageId)
+      }
+      const messagesWithDuration = addThinkingDurationToLastAssistantMessage(
+        allMessages,
+        thinkingDurationSeconds
+      )
+      setMessages(messagesWithDuration)
+
       try {
         await saveMessages({
           chatId: chatId as Id<"chats">,
-          messages: toStoredMessages(allMessages),
+          messages: toStoredMessages(messagesWithDuration),
         })
       } catch (error) {
         console.error("Failed to save chat:", error)
@@ -115,6 +137,9 @@ function ChatView({
     (text: string, files: ChatSubmissionFile[]) => {
       if (!hasChatSubmission(text, files)) return
 
+      thinkingStartedAtRef.current = Date.now()
+      thinkingDurationsRef.current.clear()
+
       sendMessage({
         text,
         ...(files.length > 0 ? { files } : {}),
@@ -123,14 +148,28 @@ function ChatView({
     [sendMessage]
   )
 
+  const handleRegenerate = useCallback(() => {
+    thinkingStartedAtRef.current = Date.now()
+    thinkingDurationsRef.current.clear()
+    regenerate()
+  }, [regenerate])
+
+  const handleThinkingDone = useCallback(
+    (messageId: string, durationSeconds: number) => {
+      thinkingDurationsRef.current.set(messageId, durationSeconds)
+    },
+    []
+  )
+
   return (
     <ChatAppShell>
       <ChatConversation
         autoFocus
         chatId={chatId}
         messages={messages}
+        onThinkingDone={handleThinkingDone}
         onSubmit={handleSubmit}
-        reload={regenerate}
+        reload={handleRegenerate}
         status={status}
         stop={stop}
       />

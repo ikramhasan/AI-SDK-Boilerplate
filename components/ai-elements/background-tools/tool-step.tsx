@@ -23,7 +23,20 @@ import {
   composioRemoteBashConfig,
   ComposioRemoteBashContent,
 } from "./composio-remote-bash-tool";
-import { getCurrentDateTimeConfig, GetCurrentDateTimeContent } from "./get-current-date-time-tool";
+import {
+  getCurrentDateTimeConfig,
+  GetCurrentDateTimeContent,
+} from "./get-current-date-time-tool";
+import {
+  addMemoryConfig,
+  AddMemoryContent,
+  getAddMemoryLabel,
+} from "./add-memory-tool";
+import {
+  getSearchMemoriesLabel,
+  searchMemoriesConfig,
+  SearchMemoriesContent,
+} from "./search-memories-tool";
 import { getDefaultConfig, DefaultToolContent } from "./default-tool";
 
 interface ToolRegistry {
@@ -53,6 +66,16 @@ const toolRegistry: Record<string, ToolRegistry> = {
   getCurrentDateTime: {
     config: getCurrentDateTimeConfig,
     Content: GetCurrentDateTimeContent,
+  },
+  addMemory: {
+    config: addMemoryConfig,
+    Content: AddMemoryContent,
+    getLabel: getAddMemoryLabel,
+  },
+  searchMemories: {
+    config: searchMemoriesConfig,
+    Content: SearchMemoriesContent,
+    getLabel: getSearchMemoriesLabel,
   },
   getChartImageForDocument: {
     config: getChartImageConfig,
