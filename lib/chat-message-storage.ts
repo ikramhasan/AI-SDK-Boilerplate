@@ -206,22 +206,46 @@ function compactDocumentOutput(output: unknown) {
 
 function compactAskUserQuestionInput(input: unknown) {
   const record = isRecord(input) ? input : {}
-  const rawOptions = getArray(record.options) ?? []
+  const rawQuestions = getArray(record.questions) ?? []
 
   return {
-    question: getString(record.question),
-    options: rawOptions
+    questions: rawQuestions
       .filter(isRecord)
-      .map((option) => ({
-        label: getString(option.label),
-        description: getString(option.description),
-      }))
-      .filter(
-        (option) =>
-          typeof option.label === "string" &&
-          typeof option.description === "string"
-      ),
-    freeformPlaceholder: getString(record.freeformPlaceholder),
+      .map((question) => {
+        const rawOptions = getArray(question.options) ?? []
+        return {
+          id: getString(question.id),
+          title: getString(question.title),
+          options: rawOptions
+            .filter(isRecord)
+            .map((option) => ({
+              id: getString(option.id),
+              title: getString(option.title),
+              description: getString(option.description),
+            }))
+            .filter((option) => typeof option.title === "string"),
+          multiSelect:
+            typeof question.multiSelect === "boolean"
+              ? question.multiSelect
+              : undefined,
+          allowOther:
+            typeof question.allowOther === "boolean"
+              ? question.allowOther
+              : undefined,
+          otherPlaceholder: getString(question.otherPlaceholder),
+          skippable:
+            typeof question.skippable === "boolean"
+              ? question.skippable
+              : undefined,
+          nextLabel: getString(question.nextLabel),
+          layout:
+            question.layout === "inline" || question.layout === "stacked"
+              ? question.layout
+              : undefined,
+        }
+      })
+      .filter((question) => typeof question.title === "string"),
+    skipLabel: getString(record.skipLabel),
   }
 }
 

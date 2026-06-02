@@ -1,10 +1,13 @@
 "use client";
 
-import { KeyboardEvent, useCallback, useState } from "react";
-import { InformationCircleIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { CheckIcon, CornerDownLeftIcon, Loader2Icon, XCircleIcon } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCallback, useMemo, useState } from "react";
+import { Loader2Icon, XCircleIcon } from "lucide-react";
+import {
+  AskUserQuestions,
+  type AskUserAnswer,
+  type AskUserOption,
+  type AskUserQuestion as AskUserQuestionItem,
+} from "@/components/ui/ask-user-questions";
 import { cn } from "@/lib/utils";
 
 type AskUserQuestionState =
@@ -17,21 +20,79 @@ type AskUserQuestionState =
   | "output-denied";
 
 export interface AskUserQuestionOption {
-  label: string;
-  description: string;
+  id?: string;
+  title?: string;
+  description?: string;
 }
 
 export interface AskUserQuestionInput {
-  question?: string;
-  options?: AskUserQuestionOption[];
-  freeformPlaceholder?: string;
+  questions?: AskUserQuestionItem[];
+  skipLabel?: string;
 }
 
 export interface AskUserQuestionOutput extends AskUserQuestionInput {
   error?: string;
 }
 
-const DEFAULT_FREEFORM_PLACEHOLDER = "Something else? Write here...";
+function optionId(option: AskUserOption, index: number) {
+  return option.id ?? `o-${index}`;
+}
+
+function questionId(question: AskUserQuestionItem, index: number) {
+  return question.id ?? `q-${index}`;
+}
+
+function normalizeQuestions(
+  source: AskUserQuestionInput | AskUserQuestionOutput | undefined
+): AskUserQuestionItem[] {
+  if (!source) return [];
+
+  if (Array.isArray(source.questions) && source.questions.length > 0) {
+    return source.questions.map((question, questionIndex) => ({
+      ...question,
+      id: question.id ?? `q-${questionIndex}`,
+      options: (question.options ?? []).map((option, optionIndex) => ({
+        id: option.id ?? `o-${optionIndex}`,
+        title: option.title,
+        description: option.description,
+      })),
+    }));
+  }
+
+  return [];
+}
+
+function formatAnswers(
+  questions: AskUserQuestionItem[],
+  answers: Record<string, AskUserAnswer>
+) {
+  return questions
+    .map((question, questionIndex) => {
+      const qId = questionId(question, questionIndex);
+      const answer = answers[qId];
+
+      if (!answer || answer.skipped) {
+        return "Skipped";
+      }
+
+      const selectedTitles = (question.options ?? [])
+        .filter((option, optionIndex) =>
+          answer.selectedIds.includes(optionId(option, optionIndex))
+        )
+        .map((option) => option.title);
+
+      const values = [...selectedTitles];
+      const otherText = answer.otherText?.trim();
+      if (otherText) {
+        values.push(
+          selectedTitles.length > 0 ? `Other: ${otherText}` : otherText
+        );
+      }
+
+      return values.length > 0 ? values.join(", ") : "No answer";
+    })
+    .join("\n");
+}
 
 export function AskUserQuestion({
   state,
@@ -48,69 +109,51 @@ export function AskUserQuestion({
   submittedReply?: string | null;
   onSubmit: (text: string) => void | Promise<void>;
 }) {
-  const question = output?.question ?? input?.question;
-  const options = output?.options ?? input?.options ?? [];
-  const freeformPlaceholder =
-    output?.freeformPlaceholder ??
-    input?.freeformPlaceholder ??
-    DEFAULT_FREEFORM_PLACEHOLDER;
+  const source = output ?? input;
+  const questions = useMemo(() => normalizeQuestions(source), [source]);
   const error = output?.error;
+  const skipLabel = source?.skipLabel ?? "Skip";
 
   const isLoading = state === "input-available" || state === "input-streaming";
   const isError = state === "output-error" || state === "output-denied";
 
-  const [freeformValue, setFreeformValue] = useState("");
   const [localSubmittedReply, setLocalSubmittedReply] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState<number>(0);
 
   const effectiveSubmittedReply = submittedReply ?? localSubmittedReply;
-  const interactionDisabled = disabled || isSubmitting || effectiveSubmittedReply !== null;
-  const trimmedFreeformValue = freeformValue.trim();
-  const selectedReply =
-    trimmedFreeformValue.length > 0
-      ? trimmedFreeformValue
-      : (options[selectedIndex]?.label ?? "");
+  const interactionDisabled =
+    disabled || isSubmitting || effectiveSubmittedReply !== null;
 
-  const submitReply = useCallback(
-    async (reply: string) => {
-      const trimmedReply = reply.trim();
-      if (!trimmedReply || interactionDisabled) return;
+  const handleComplete = useCallback(
+    async (answers: Record<string, AskUserAnswer>) => {
+      if (interactionDisabled) return;
+
+      const reply = formatAnswers(questions, answers).trim();
+      if (!reply) return;
 
       setIsSubmitting(true);
-
       try {
-        await onSubmit(trimmedReply);
-        setLocalSubmittedReply(trimmedReply);
-        setFreeformValue("");
+        await onSubmit(reply);
+        setLocalSubmittedReply(reply);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [interactionDisabled, onSubmit]
+    [interactionDisabled, onSubmit, questions]
   );
 
-  const handleKeyDown = useCallback(
-    (event: KeyboardEvent<HTMLInputElement>) => {
-      if (event.key !== "Enter") return;
-      event.preventDefault();
-      void submitReply(selectedReply);
-    },
-    [selectedReply, submitReply]
-  );
-
-  if (isLoading && !question) {
+  if (isLoading && questions.length === 0) {
     return (
       <div className="not-prose py-2">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2Icon className="size-3.5 animate-spin" />
-          <span>Preparing question…</span>
+          <span>Preparing question...</span>
         </div>
       </div>
     );
   }
 
-  if ((isError || error) && !question) {
+  if ((isError || error) && questions.length === 0) {
     return (
       <div className="not-prose py-2">
         <div className="flex items-center gap-2 text-sm text-destructive">
@@ -121,118 +164,37 @@ export function AskUserQuestion({
     );
   }
 
-  if (!question) return null;
+  if (questions.length === 0) return null;
 
   return (
     <div className="not-prose py-2">
-      <TooltipProvider>
-        <div className="overflow-hidden rounded-[18px] border border-border/70 bg-card text-card-foreground shadow-xl ring-1 ring-black/5 dark:ring-white/5">
-          <div className="px-4 pb-2 pt-4 text-[15px] font-semibold tracking-[-0.01em]">
-            {question}
-          </div>
+      <div
+        className={cn(
+          "relative",
+          interactionDisabled && "pointer-events-none opacity-75"
+        )}
+        aria-busy={isSubmitting}
+        aria-disabled={interactionDisabled}
+      >
+        <AskUserQuestions
+          questions={questions}
+          onComplete={handleComplete}
+          skipLabel={skipLabel}
+        />
+      </div>
 
-          <div className="px-3 pb-3">
-            <div className="space-y-1">
-              {options.map((option, index) => {
-                const isSelected =
-                  effectiveSubmittedReply === option.label ||
-                  (effectiveSubmittedReply === null &&
-                    freeformValue.trim().length === 0 &&
-                    selectedIndex === index);
+      {effectiveSubmittedReply ? (
+        <p className="mt-2 text-[12px] text-muted-foreground">
+          Submitted response
+        </p>
+      ) : null}
 
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] transition-colors",
-                      isSelected
-                        ? "bg-accent text-accent-foreground"
-                        : "text-foreground hover:bg-muted/70",
-                      interactionDisabled && "cursor-not-allowed opacity-70"
-                    )}
-                    disabled={interactionDisabled}
-                    onClick={() => void submitReply(option.label)}
-                  >
-                    <span className="w-5 shrink-0 text-right text-muted-foreground">
-                      {index + 1}.
-                    </span>
-                    <span className="truncate font-medium">{option.label}</span>
-                    {option.description ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="inline-flex size-4 shrink-0 items-center justify-center text-muted-foreground">
-                            <HugeiconsIcon
-                              icon={InformationCircleIcon}
-                              size={14}
-                              strokeWidth={1.8}
-                            />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" sideOffset={8}>
-                          {option.description}
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : null}
-                  </button>
-                );
-              })}
-
-              <div className="flex items-center gap-3">
-                <div
-                  className={cn(
-                    "flex min-w-0 flex-1 items-center gap-2 rounded-xl px-3 py-2 text-left text-[14px] transition-colors focus-within:bg-muted/70",
-                    trimmedFreeformValue.length > 0
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-muted/70",
-                    interactionDisabled && "opacity-70"
-                  )}
-                >
-                  <span className="w-5 shrink-0 text-right text-muted-foreground">
-                    {options.length + 1}.
-                  </span>
-                  <input
-                    className="min-w-0 flex-1 bg-transparent p-0 text-[14px] leading-none text-foreground outline-none placeholder:text-muted-foreground"
-                    disabled={interactionDisabled}
-                    onChange={(event) => setFreeformValue(event.target.value)}
-                    onFocus={() => setSelectedIndex(-1)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={freeformPlaceholder}
-                    type="text"
-                    value={freeformValue}
-                  />
-                </div>
-                <button
-                  type="button"
-                  className={cn(
-                    "inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-primary px-4 text-[14px] font-medium text-primary-foreground transition-opacity",
-                    "hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                  )}
-                  disabled={interactionDisabled || selectedReply.trim().length === 0}
-                  onClick={() => void submitReply(selectedReply)}
-                >
-                  {isSubmitting ? (
-                    <Loader2Icon className="size-3.5 animate-spin" />
-                  ) : effectiveSubmittedReply ? (
-                    <CheckIcon className="size-3.5" />
-                  ) : null}
-                  <span>{effectiveSubmittedReply ? "Submitted" : "Submit"}</span>
-                  <span className="inline-flex size-5 items-center justify-center rounded-full bg-black/10 dark:bg-white/15">
-                    <CornerDownLeftIcon className="size-3" />
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {(isError || error) && (
-              <div className="mt-3 flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
-                <XCircleIcon className="size-3.5 shrink-0" />
-                <span>{error ?? "Failed to show question"}</span>
-              </div>
-            )}
-          </div>
+      {(isError || error) && (
+        <div className="mt-3 flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-[13px] text-destructive">
+          <XCircleIcon className="size-3.5 shrink-0" />
+          <span>{error ?? "Failed to show question"}</span>
         </div>
-      </TooltipProvider>
+      )}
     </div>
   );
 }
