@@ -221,6 +221,36 @@ function getNextUserReply(messages: UIMessage[], startIndex: number): string | n
   return null;
 }
 
+function getAskUserQuestionTitles(part: UIMessage["parts"][number]): string[] {
+  if (!isToolUIPart(part)) return [];
+  if (
+    part.type !== "tool-askUserQuestion" &&
+    !(part.type === "dynamic-tool" && part.toolName === "askUserQuestion")
+  ) {
+    return [];
+  }
+
+  const payload = (part.output ?? part.input) as {
+    questions?: Array<{ title?: unknown }>;
+  } | undefined;
+
+  return Array.isArray(payload?.questions)
+    ? payload.questions
+        .map((question) => question.title)
+        .filter((title): title is string => typeof title === "string")
+    : [];
+}
+
+function isAskUserQuestionEcho(text: string, titles: Set<string>): boolean {
+  const normalized = text
+    .split("\n")
+    .filter((line) => !/^\s*-{3,}\s*$/.test(line))
+    .join("\n")
+    .trim();
+
+  return titles.has(normalized);
+}
+
 const CopyAction = memo(({ content }: { content: string }) => {
   const handleClick = useCallback(() => {
     navigator.clipboard.writeText(content);
@@ -364,6 +394,9 @@ export function ChatMessages({
                   // foreground tools appear between reasoning/background steps.
                   const allBgParts: { part: UIMessage["parts"][number]; index: number }[] = [];
                   const otherElements: { element: React.ReactNode; order: number }[] = [];
+                  const askUserQuestionTitles = new Set(
+                    message.parts.flatMap(getAskUserQuestionTitles)
+                  );
 
                   // Chain of thought should collapse once text content or foreground tools appear
                   const hasVisibleContent = message.parts.some(
@@ -418,6 +451,13 @@ export function ChatMessages({
 
                     // Text content
                     if (part.type === "text" && part.text.length > 0) {
+                      if (
+                        message.role === "assistant" &&
+                        isAskUserQuestionEcho(part.text, askUserQuestionTitles)
+                      ) {
+                        return;
+                      }
+
                       const isErrorMessage =
                         message.role === "assistant" &&
                         (message as UIMessage & { metadata?: Record<string, unknown> }).metadata?.error === true;
